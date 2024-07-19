@@ -1,0 +1,4 @@
+Mirroring images for a disconnected installation by using the oc-mirror plugin v2
+You can run your cluster in a restricted network without direct internet connectivity if you install the cluster from a mirrored set of OpenShift Container Platform container images in a private registry. This registry must be running whenever your cluster is running.
+
+Just as you can use the oc-mirror OpenShift CLI (oc) plugin, you can also use oc-mirror plugin v2 to mirror images to a mirror registry in your fully or partially disconnected environments. To download the required images from the official Red Hat registries, you must run oc-mirror plugin v2 from a system with internet connectivity.

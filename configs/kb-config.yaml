@@ -1,0 +1,8 @@
+apiVersion: v1alpha1
+kind: GoRagChatbotKnowledgeBaseConfig
+spec:
+  docs:
+    - https://docs.openshift.com/container-platform/4.16/installing/disconnected_install/about-installing-oc-mirror-v2.html
+    # - https://github.com/openshift/oc-mirror/blob/main/v2/docs/enclave_support.md
+    # - /assets/kb-docs
+    # - https://github.com/openshift/oc-mirror/tree/main/v2/docs

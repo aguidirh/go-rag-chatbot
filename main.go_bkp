@@ -1,0 +1,167 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"net/http"
+	"net/url"
+	"os"
+
+	"github.com/tmc/langchaingo/chains"
+	"github.com/tmc/langchaingo/documentloaders"
+	"github.com/tmc/langchaingo/embeddings"
+	"github.com/tmc/langchaingo/llms/ollama"
+	"github.com/tmc/langchaingo/textsplitter"
+	"github.com/tmc/langchaingo/vectorstores"
+	"github.com/tmc/langchaingo/vectorstores/qdrant"
+)
+
+const (
+	qdrant_url                   = "http://0.0.0.0:6333"
+	qdrant_collection            = "test_collection2"
+	vector_size                  = 4096
+	qdrant_create_collection_api = "collections"
+)
+
+func main() {
+	llm, err := ollama.New(ollama.WithModel("llama2"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	e, err := embeddings.NewEmbedder(llm)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	
+
+	url, err := url.Parse(qdrant_url)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//TODO ALEX for Thursday, check how to get the embeddings size from a model
+	collectionConfig := map[string]interface{}{
+		"vectors": map[string]interface{}{
+			"size":     4096, //TODO ALEX make more flexible based on the model being used, for llama2 it is 4096
+			"distance": "Cosine",
+		},
+	}
+
+	create_api := *url.JoinPath(qdrant_create_collection_api, qdrant_collection)
+	fmt.Println(create_api)
+
+	qdrant.DoRequest(ctx, *url.JoinPath(qdrant_create_collection_api, qdrant_collection), "", http.MethodPut, collectionConfig)
+
+	store, err := qdrant.New(
+		qdrant.WithURL(*url),
+		qdrant.WithCollectionName(qdrant_collection),
+		qdrant.WithEmbedder(e),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	f, err := os.Open("/home/aguidi/go/src/github.com/aguidirh/go-rag-chatbot/test.txt")
+	if err != nil {
+		fmt.Println("Error opening file: ", err)
+	}
+
+	docs_text, err := documentloaders.NewText(f).LoadAndSplit(ctx, textsplitter.NewRecursiveCharacter())
+	// fmt.Println(docs_text)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// resp, err := http.Get("https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-general-nosql-design.html")
+	// resp, err := http.Get("https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-general-nosql-design.html")
+	// if err != nil {
+	// 	log.Fatalf("Failed to call website: %v", err)
+	// }
+	// defer resp.Body.Close()
+
+	// docs, err := documentloaders.NewHTML(resp.Body).LoadAndSplit(ctx, textsplitter.NewRecursiveCharacter())
+
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	if len(docs_text) > 0 {
+		_, err = store.AddDocuments(ctx, docs_text)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	query := "what is oc-mirror?"
+
+	optionsVector := []vectorstores.Option{
+		vectorstores.WithScoreThreshold(0.5),
+	}
+
+	// retriever := vectorstores.ToRetriever(store, 10, optionsVector...)
+
+	// resDocs, err := retriever.GetRelevantDocuments(ctx, query)
+
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// history := memory.NewChatMessageHistory()
+
+	// for _, doc := range resDocs {
+
+	// 	history.AddAIMessage(ctx, doc.PageContent)
+	// 	//	fmt.Println(doc.PageContent)
+
+	// }
+
+	// conversation := memory.NewConversationBuffer(memory.WithChatHistory(history))
+
+	// executor, err := agents.Initialize(
+	// 	llm,
+	// 	nil,
+	// 	agents.ConversationalReactDescription,
+	// 	agents.WithMemory(conversation),
+	// )
+
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// options := []chains.ChainCallOption{
+	// 	chains.WithTemperature(0.8),
+	// }
+	// res, err := chains.Run(ctx, executor, query, options...)
+
+	options := []chains.ChainCallOption{
+		chains.WithTemperature(0.8),
+	}
+
+	res, err := chains.Run(
+		ctx,
+		chains.NewRetrievalQAFromLLM(
+			llm,
+			vectorstores.ToRetriever(store, 10, optionsVector...),
+		),
+		query,
+		options...,
+	)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(res)
+
+	// ctx := context.Background()
+	// completion, err := llms.GenerateFromSinglePrompt(ctx, llm, query)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// fmt.Println("Response:\n", completion)
+}
