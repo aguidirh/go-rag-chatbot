@@ -15,8 +15,14 @@ services:
       dockerfile: Containerfile
     volumes:
       - ./configs:/go/src/github.com/aguidirh/go-rag-build/configs:z
-    command: ./go-rag-bot serve --config-path ./configs --vectordb-host qdrant --vectordb-port 6334 --listen-address 0.0.0.0
+    command: ./go-rag-bot serve --config-path ./configs --vectordb-host qdrant --vectordb-port 6334 --listen-address 0.0.0.0 --model-server-url "http://ollama:21434"
     ports:
       - 8080:8080
     depends_on:
       - qdrant
+  ollama:
+    image: docker.io/ollama/ollama:rocm
+    ports:
+      - 21434:11434
+    environment:
+      - OLLAMA_HOST="0.0.0.0"

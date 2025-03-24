@@ -15,6 +15,7 @@ type Config struct {
 			Model          string  `yaml:"model"`          // The model used by the language learning system.
 			ScoreThreshold float32 `yaml:"scoreThreshold"` // The threshold score for generating responses.
 			Temperature    float64 `yaml:"temperature"`    // The temperature parameter influencing response diversity.
+			URL            string  `yaml:"url"`            // The URL of the model server
 		} `yaml:"llm"`
 
 		Server struct {

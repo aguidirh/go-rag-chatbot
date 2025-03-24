@@ -13,13 +13,14 @@ import (
 )
 
 type HttpServer struct {
-	ConfigPath   string
-	Log          *logrus.Logger
-	config       config.Config
-	VectorDBHost string
-	VectorDBPort int
-	BindAddress  string
-	BindPort     int
+	ConfigPath     string
+	Log            *logrus.Logger
+	config         config.Config
+	VectorDBHost   string
+	VectorDBPort   int
+	BindAddress    string
+	BindPort       int
+	ModelServerURL string
 }
 
 func (h *HttpServer) Run() error {
@@ -52,6 +53,10 @@ func (h *HttpServer) Run() error {
 	if h.BindPort > 0 {
 		h.Log.Infof("bind port overridden by --bind-port to %d", h.BindPort)
 		cfg.Spec.Server.Port = strconv.Itoa(h.BindPort)
+	}
+	if len(h.ModelServerURL) > 0 {
+		h.Log.Infof("Model server url overridden by --model-server-url to %d", h.BindPort)
+		cfg.Spec.LLM.URL = h.ModelServerURL
 	}
 
 	app, err := app.New(cfg, kbCfg)

@@ -17,7 +17,7 @@ type App struct {
 }
 
 func New(cfg data.Config, kbCfg data.KBConfig) (*App, error) {
-	llmHandler := langchain.New(cfg.Spec.LLM.Model, cfg.Spec.LLM.ScoreThreshold, cfg.Spec.LLM.Temperature, kbCfg)
+	llmHandler := langchain.New(cfg.Spec.LLM.Model, cfg.Spec.LLM.URL, cfg.Spec.LLM.ScoreThreshold, cfg.Spec.LLM.Temperature, kbCfg)
 
 	emb, err := llmHandler.NewEmbedder()
 	if err != nil {
