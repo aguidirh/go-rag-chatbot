@@ -7,11 +7,23 @@ import (
 
 	"github.com/aguidirh/go-rag-chatbot/internal/pkg/app"
 	"github.com/aguidirh/go-rag-chatbot/internal/pkg/config"
+	"github.com/aguidirh/go-rag-chatbot/pkg/data"
+	"github.com/sirupsen/logrus"
 )
 
-func Run() error {
+type HttpServer struct {
+	ConfigPath string
+	Log        *logrus.Logger
+	config     config.Config
+}
 
-	cfg, kbCfg, err := loadConfigs()
+func (h *HttpServer) Run() error {
+	h.config = config.Config{
+		ConfigPath: h.ConfigPath,
+		Log:        h.Log,
+	}
+
+	cfg, kbCfg, err := h.loadConfigs()
 	if err != nil {
 		return err
 	}
@@ -84,16 +96,19 @@ func Run() error {
 }
 
 // TODO create a generic function to load configs
-func loadConfigs() (config.Config, config.KBConfig, error) {
-	var cfg config.Config
-	var kbCfg config.KBConfig
+func (h *HttpServer) loadConfigs() (data.Config, data.KBConfig, error) {
+	var cfg data.Config
+	var kbCfg data.KBConfig
 
-	cfg, err := config.LoadConfig()
+	cfg, err := h.config.LoadConfig()
 	if err != nil {
 		return cfg, kbCfg, err
 	}
-
-	kbCfg, err = config.LoadKBConfig()
+	kbConfig := config.KbConfig{
+		ConfigPath: h.ConfigPath,
+		Log:        h.Log,
+	}
+	kbCfg, err = kbConfig.LoadKBConfig()
 	if err != nil {
 		return cfg, kbCfg, err
 	}

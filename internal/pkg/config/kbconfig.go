@@ -6,21 +6,20 @@ import (
 	"os"
 	"path"
 
+	"github.com/aguidirh/go-rag-chatbot/pkg/data"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
-type KBConfig struct {
-	ApiVersion string `yaml:"apiVersion"`
-	Kind       string `yaml:"kind"`
-	Spec       struct {
-		Docs []string `yaml:"docs"`
-	} `yaml:"spec"`
+type KbConfig struct {
+	ConfigPath string
+	Log        *logrus.Logger
 }
 
-func LoadKBConfig() (KBConfig, error) {
-	var kbCfg KBConfig
+func (k *KbConfig) LoadKBConfig() (data.KBConfig, error) {
+	var kbCfg data.KBConfig
 
-	data, err := os.ReadFile(path.Join(configPath, kbConfigFileName))
+	data, err := os.ReadFile(path.Join(k.ConfigPath, kbConfigFileName))
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}

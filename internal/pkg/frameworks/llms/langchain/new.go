@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/aguidirh/go-rag-chatbot/internal/pkg/adapters"
-	"github.com/aguidirh/go-rag-chatbot/internal/pkg/config"
+	"github.com/aguidirh/go-rag-chatbot/pkg/data"
 	"github.com/tmc/langchaingo/llms/ollama"
 )
 
@@ -13,10 +13,10 @@ type LanchChain struct {
 	scoreThreshold float32
 	temperature    float64
 	llm            *ollama.LLM
-	kbCfg          config.KBConfig
+	kbCfg          data.KBConfig
 }
 
-func New(model string, scoreThreshold float32, temperature float64, kbCfg config.KBConfig) adapters.LLMHandler {
+func New(model string, scoreThreshold float32, temperature float64, kbCfg data.KBConfig) adapters.LLMHandler {
 
 	llm, err := ollama.New(ollama.WithModel(model))
 	if err != nil {
