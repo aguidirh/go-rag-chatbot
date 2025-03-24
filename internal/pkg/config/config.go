@@ -19,7 +19,7 @@ type Config struct {
 func (c *Config) LoadConfig() (data.Config, error) {
 	var cfg data.Config
 
-	data, err := os.ReadFile(path.Join(configPath, configFileName))
+	data, err := os.ReadFile(path.Join(c.ConfigPath, configFileName))
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}

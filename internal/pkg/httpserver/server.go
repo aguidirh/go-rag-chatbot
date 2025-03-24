@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/aguidirh/go-rag-chatbot/internal/pkg/app"
 	"github.com/aguidirh/go-rag-chatbot/internal/pkg/config"
@@ -12,9 +13,13 @@ import (
 )
 
 type HttpServer struct {
-	ConfigPath string
-	Log        *logrus.Logger
-	config     config.Config
+	ConfigPath   string
+	Log          *logrus.Logger
+	config       config.Config
+	VectorDBHost string
+	VectorDBPort int
+	BindAddress  string
+	BindPort     int
 }
 
 func (h *HttpServer) Run() error {
@@ -27,8 +32,27 @@ func (h *HttpServer) Run() error {
 	if err != nil {
 		return err
 	}
+	bindAddress := "127.0.0.1"
 
 	ctx := context.Background()
+
+	if len(h.VectorDBHost) > 0 {
+		h.Log.Infof("vector DB host overridden by --vectordb-host to %s", h.VectorDBHost)
+		cfg.Spec.VectorDB.Host = h.VectorDBHost
+	}
+	if h.VectorDBPort > 0 {
+		h.Log.Infof("vector DB port overridden by --vectordb-port to %d", h.VectorDBPort)
+		cfg.Spec.VectorDB.Port = strconv.Itoa(h.VectorDBPort)
+	}
+
+	if len(h.BindAddress) > 0 {
+		h.Log.Infof("bind host overridden by --bind-address to %s", h.BindAddress)
+		bindAddress = h.BindAddress
+	}
+	if h.BindPort > 0 {
+		h.Log.Infof("bind port overridden by --bind-port to %d", h.BindPort)
+		cfg.Spec.Server.Port = strconv.Itoa(h.BindPort)
+	}
 
 	app, err := app.New(cfg, kbCfg)
 	if err != nil {
@@ -89,9 +113,13 @@ func (h *HttpServer) Run() error {
 		fmt.Fprint(w, resp)
 	})
 
-	fmt.Println("Server is listening on http://localhost:8080")
+	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "ok")
+	})
 
-	addr := ":" + cfg.Spec.Server.Port
+	fmt.Printf("server is listening on http://%s:%s\n", bindAddress, cfg.Spec.Server.Port)
+
+	addr := bindAddress + ":" + cfg.Spec.Server.Port
 	return http.ListenAndServe(addr, nil)
 }
 
