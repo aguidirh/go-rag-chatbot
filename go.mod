@@ -3,6 +3,7 @@ module github.com/aguidirh/go-rag-chatbot
 go 1.22.4
 
 require (
+	github.com/spf13/cobra v1.9.1
 	github.com/tmc/langchaingo v0.1.12
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -24,6 +25,7 @@ require (
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/huandu/xstrings v1.3.3 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.6 // indirect
 	github.com/ledongthuc/pdf v0.0.0-20220302134840-0c2507a12d80 // indirect
@@ -39,6 +41,7 @@ require (
 	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
+	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/yargevad/filepathx v1.0.0 // indirect
 	gitlab.com/golang-commonmark/html v0.0.0-20191124015941-a22733972181 // indirect
 	gitlab.com/golang-commonmark/linkify v0.0.0-20191026162114-a0c2df6c8f82 // indirect
