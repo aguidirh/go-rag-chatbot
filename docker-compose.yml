@@ -1,0 +1,22 @@
+version: '3'
+services:
+  qdrant:
+    image: docker.io/qdrant/qdrant:v1.13.5
+    working_dir: /qdrant
+    volumes:
+      - ./qdrant_storage:/qdrant/storage:z
+    ports:
+      - 6333:6333
+      - 6334:6334
+    environment:
+      - QDRANT_SERVICE_GRPC_PORT="6334"
+  go-rag-bot:
+    build: 
+      dockerfile: Containerfile
+    volumes:
+      - ./configs:/go/src/github.com/aguidirh/go-rag-build/configs:z
+    command: ./go-rag-bot serve --config-path ./configs --vectordb-host qdrant --vectordb-port 6334 --listen-address 0.0.0.0
+    ports:
+      - 8080:8080
+    depends_on:
+      - qdrant

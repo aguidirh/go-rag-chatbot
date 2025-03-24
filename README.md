@@ -94,6 +94,30 @@ go mod tidy
 go run cmd/main.go
 ```
 
+### Running as a Container
+
+Additionally, `podman-compose` or `docker-compose` may be used to build and start `go-rag-chatbot`. To do this, simply run:
+
+```bash
+mkdir qdrant_storage
+podman-compose build
+podman-compose up
+```
+
+Configuration will be derived from `./config`. `docker-compose.yml` preferrentially sets up some arguments to ensure qdrant can be reached. Check
+to see if the http endpoint is up by running:
+
+```bash
+$ curl 127.0.0.1:8080/healthz
+ok
+```
+
+Check if qdrant is up by running:
+```bash
+$ curl 127.0.0.1:6333
+{"title":"qdrant - vector search engine","version":"1.13.5","commit":"e282ed91e1f80a27cfa9d5d3d65b13b065b0eef8"
+```
+
 ## Using the Chatbot
 This section will show how to load the vector database with docs and how to interect with the chatbot
 
