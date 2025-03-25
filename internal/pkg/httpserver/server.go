@@ -55,11 +55,11 @@ func (h *HttpServer) Run() error {
 		cfg.Spec.Server.Port = strconv.Itoa(h.BindPort)
 	}
 	if len(h.ModelServerURL) > 0 {
-		h.Log.Infof("Model server url overridden by --model-server-url to %d", h.BindPort)
+		h.Log.Infof("Model server url overridden by --model-server-url to %s", h.ModelServerURL)
 		cfg.Spec.LLM.URL = h.ModelServerURL
 	}
 
-	app, err := app.New(cfg, kbCfg)
+	app, err := app.New(cfg, kbCfg, h.Log)
 	if err != nil {
 		return err
 	}

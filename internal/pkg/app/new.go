@@ -7,6 +7,7 @@ import (
 	"github.com/aguidirh/go-rag-chatbot/internal/pkg/frameworks/databases/qdrant"
 	"github.com/aguidirh/go-rag-chatbot/internal/pkg/frameworks/llms/langchain"
 	"github.com/aguidirh/go-rag-chatbot/pkg/data"
+	"github.com/sirupsen/logrus"
 	"github.com/tmc/langchaingo/embeddings"
 )
 
@@ -16,10 +17,11 @@ type App struct {
 	LLMHandler adapters.LLMHandler
 	emb        embeddings.Embedder
 	VectorDB   adapters.VectorDB
+	log        *logrus.Logger
 }
 
-func New(cfg data.Config, kbCfg data.KBConfig) (*App, error) {
-	llmHandler := langchain.New(cfg.Spec.LLM.Model, cfg.Spec.LLM.URL, cfg.Spec.LLM.ScoreThreshold, cfg.Spec.LLM.Temperature, kbCfg)
+func New(cfg data.Config, kbCfg data.KBConfig, log *logrus.Logger) (*App, error) {
+	llmHandler := langchain.New(cfg.Spec.LLM.Model, cfg.Spec.LLM.URL, cfg.Spec.LLM.ScoreThreshold, cfg.Spec.LLM.Temperature, kbCfg, log)
 
 	emb, err := llmHandler.NewEmbedder()
 	if err != nil {
