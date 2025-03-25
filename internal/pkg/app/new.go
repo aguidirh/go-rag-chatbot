@@ -1,6 +1,8 @@
 package app
 
 import (
+	"fmt"
+
 	"github.com/aguidirh/go-rag-chatbot/internal/pkg/adapters"
 	"github.com/aguidirh/go-rag-chatbot/internal/pkg/frameworks/databases/qdrant"
 	"github.com/aguidirh/go-rag-chatbot/internal/pkg/frameworks/llms/langchain"
@@ -24,7 +26,10 @@ func New(cfg data.Config, kbCfg data.KBConfig) (*App, error) {
 		return nil, err
 	}
 
-	vectorDB := qdrant.New(cfg.Spec.VectorDB.Host, cfg.Spec.VectorDB.Port, cfg.Spec.VectorDB.Collection, emb)
+	vectorDB, err := qdrant.New(cfg.Spec.VectorDB.Host, cfg.Spec.VectorDB.Port, cfg.Spec.VectorDB.Collection, emb)
+	if err != nil {
+		return nil, fmt.Errorf("unable to connect to qdrant. %v", err)
+	}
 
 	return &App{
 		cfg:        cfg,
