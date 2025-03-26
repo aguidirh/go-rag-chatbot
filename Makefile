@@ -12,8 +12,8 @@ ENVTEST_K8S_VERSION = 1.32.1
 # https://github.com/golang/go/wiki/Modules#how-do-i-use-vendoring-with-modules-is-vendoring-going-away
 GO111MODULE = on
 export GO111MODULE
-GOFLAGS ?= -mod=vendor
-export GOFLAGS
+# GOFLAGS ?= -mod=vendor
+# export GOFLAGS
 
 ifeq ($(DBG),1)
 GOGCFLAGS ?= -gcflags=all="-N -l"
