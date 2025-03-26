@@ -4,21 +4,62 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/aguidirh/go-rag-chatbot/internal/pkg/app"
 	"github.com/aguidirh/go-rag-chatbot/internal/pkg/config"
+	"github.com/aguidirh/go-rag-chatbot/pkg/data"
+	"github.com/sirupsen/logrus"
 )
 
-func Run() error {
+type HttpServer struct {
+	ConfigPath     string
+	Log            *logrus.Logger
+	config         config.Config
+	VectorDBHost   string
+	VectorDBPort   int
+	BindAddress    string
+	BindPort       int
+	ModelServerURL string
+}
 
-	cfg, kbCfg, err := loadConfigs()
+func (h *HttpServer) Run() error {
+	h.config = config.Config{
+		ConfigPath: h.ConfigPath,
+		Log:        h.Log,
+	}
+
+	cfg, kbCfg, err := h.loadConfigs()
 	if err != nil {
 		return err
 	}
+	bindAddress := "127.0.0.1"
 
 	ctx := context.Background()
 
-	app, err := app.New(cfg, kbCfg)
+	if len(h.VectorDBHost) > 0 {
+		h.Log.Infof("vector DB host overridden by --vectordb-host to %s", h.VectorDBHost)
+		cfg.Spec.VectorDB.Host = h.VectorDBHost
+	}
+	if h.VectorDBPort > 0 {
+		h.Log.Infof("vector DB port overridden by --vectordb-port to %d", h.VectorDBPort)
+		cfg.Spec.VectorDB.Port = strconv.Itoa(h.VectorDBPort)
+	}
+
+	if len(h.BindAddress) > 0 {
+		h.Log.Infof("bind host overridden by --bind-address to %s", h.BindAddress)
+		bindAddress = h.BindAddress
+	}
+	if h.BindPort > 0 {
+		h.Log.Infof("bind port overridden by --bind-port to %d", h.BindPort)
+		cfg.Spec.Server.Port = strconv.Itoa(h.BindPort)
+	}
+	if len(h.ModelServerURL) > 0 {
+		h.Log.Infof("Model server url overridden by --model-server-url to %s", h.ModelServerURL)
+		cfg.Spec.LLM.URL = h.ModelServerURL
+	}
+
+	app, err := app.New(cfg, kbCfg, h.Log)
 	if err != nil {
 		return err
 	}
@@ -77,23 +118,30 @@ func Run() error {
 		fmt.Fprint(w, resp)
 	})
 
-	fmt.Println("Server is listening on http://localhost:8080")
+	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "ok")
+	})
 
-	addr := ":" + cfg.Spec.Server.Port
+	fmt.Printf("server is listening on http://%s:%s\n", bindAddress, cfg.Spec.Server.Port)
+
+	addr := bindAddress + ":" + cfg.Spec.Server.Port
 	return http.ListenAndServe(addr, nil)
 }
 
 // TODO create a generic function to load configs
-func loadConfigs() (config.Config, config.KBConfig, error) {
-	var cfg config.Config
-	var kbCfg config.KBConfig
+func (h *HttpServer) loadConfigs() (data.Config, data.KBConfig, error) {
+	var cfg data.Config
+	var kbCfg data.KBConfig
 
-	cfg, err := config.LoadConfig()
+	cfg, err := h.config.LoadConfig()
 	if err != nil {
 		return cfg, kbCfg, err
 	}
-
-	kbCfg, err = config.LoadKBConfig()
+	kbConfig := config.KbConfig{
+		ConfigPath: h.ConfigPath,
+		Log:        h.Log,
+	}
+	kbCfg, err = kbConfig.LoadKBConfig()
 	if err != nil {
 		return cfg, kbCfg, err
 	}

@@ -1,6 +1,7 @@
 package qdrant
 
 import (
+	"fmt"
 	"log"
 	"net/url"
 
@@ -14,16 +15,16 @@ type QdrantDB struct {
 	store qdrant.Store
 }
 
-func New(host, port string, collectionName string, emb embeddings.Embedder) adapters.VectorDB {
+func New(host, port string, collectionName string, emb embeddings.Embedder) (adapters.VectorDB, error) {
 
-	url, err := url.Parse(host + ":" + port)
+	url, err := url.Parse(fmt.Sprintf("http://%s:%s", host, port))
 	if err != nil {
-		log.Fatal(err) //TODO ALEX CHANGES ME
+		return nil, fmt.Errorf("unable to parse URL. %v", err)
 	}
 
 	store := NewQdrantStore(*url, emb, collectionName)
 
-	return &QdrantDB{url: *url, store: store}
+	return &QdrantDB{url: *url, store: store}, nil
 }
 
 func NewQdrantStore(url url.URL, emb embeddings.Embedder, collectionName string) qdrant.Store {

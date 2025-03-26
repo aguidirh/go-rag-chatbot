@@ -6,33 +6,20 @@ import (
 	"os"
 	"path"
 
+	"github.com/aguidirh/go-rag-chatbot/pkg/data"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
 type Config struct {
-	ApiVersion string `yaml:"apiVersion"`
-	Kind       string `yaml:"kind"`
-	Spec       struct {
-		VectorDB struct {
-			Host       string `yaml:"host"`
-			Port       string `yaml:"port"`
-			Collection string `yaml:"collection"`
-		} `yaml:"qdrant"`
-		LLM struct {
-			Model          string  `yaml:"model"`
-			ScoreThreshold float32 `yaml:"scoreThreshold"`
-			Temperature    float64 `yaml:"temperature"`
-		} `yaml:"llm"`
-		Server struct {
-			Port string `yaml:"port"`
-		} `yaml:"server"`
-	} `yaml:"spec"`
+	Log        *logrus.Logger
+	ConfigPath string
 }
 
-func LoadConfig() (Config, error) {
-	var cfg Config
+func (c *Config) LoadConfig() (data.Config, error) {
+	var cfg data.Config
 
-	data, err := os.ReadFile(path.Join(configPath, configFileName))
+	data, err := os.ReadFile(path.Join(c.ConfigPath, configFileName))
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}
