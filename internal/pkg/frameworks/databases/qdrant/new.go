@@ -16,7 +16,6 @@ type QdrantDB struct {
 }
 
 func New(host, port string, collectionName string, emb embeddings.Embedder) (adapters.VectorDB, error) {
-
 	url, err := url.Parse(fmt.Sprintf("http://%s:%s", host, port))
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse URL. %v", err)

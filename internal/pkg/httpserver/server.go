@@ -8,8 +8,10 @@ import (
 
 	"github.com/aguidirh/go-rag-chatbot/internal/pkg/app"
 	"github.com/aguidirh/go-rag-chatbot/internal/pkg/config"
+	"github.com/aguidirh/go-rag-chatbot/internal/pkg/frameworks/databases/qdrant"
 	"github.com/aguidirh/go-rag-chatbot/pkg/data"
 	"github.com/sirupsen/logrus"
+	"github.com/tmc/langchaingo/embeddings"
 )
 
 type HttpServer struct {
@@ -21,6 +23,7 @@ type HttpServer struct {
 	BindAddress    string
 	BindPort       int
 	ModelServerURL string
+	Embedder       embeddings.Embedder
 }
 
 func (h *HttpServer) Run() error {
@@ -59,18 +62,24 @@ func (h *HttpServer) Run() error {
 		cfg.Spec.LLM.URL = h.ModelServerURL
 	}
 
-	app, err := app.New(cfg, kbCfg, h.Log)
+	app, err := app.New(ctx, cfg, kbCfg, h.Log)
 	if err != nil {
 		return err
 	}
 
 	http.HandleFunc("/chat", func(w http.ResponseWriter, r *http.Request) {
 		var resp string
+		// to-do, add a collection query parameter to the URL and use it to create a collection in qdrant if it doesn't exist.
+		vectorDB, err := qdrant.New(cfg.Spec.VectorDB.Host, cfg.Spec.VectorDB.Port, "", app.Embedder)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
 		query := r.URL.Query().Get("query") //TODO change it to a payload instead
 
 		if query != "" {
-			resp, err = app.LLMHandler.Chat(ctx, app.VectorDB.GetStore(), query)
+			resp, err = app.LLMHandler.Chat(ctx, vectorDB.GetStore(), query)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
@@ -84,9 +93,13 @@ func (h *HttpServer) Run() error {
 		var resp string
 
 		collectionName := r.URL.Query().Get("collection-name")
-
+		vectorDB, err := qdrant.New(cfg.Spec.VectorDB.Host, cfg.Spec.VectorDB.Port, collectionName, app.Embedder)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		if collectionName != "" {
-			err = app.VectorDB.CreateCollection(ctx, collectionName, 4096, "Cosine") //TODO ALEX get the size according to the llm used
+			err = vectorDB.CreateCollection(ctx, collectionName, 4096, "Cosine") //TODO ALEX get the size according to the llm used
 
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -101,19 +114,24 @@ func (h *HttpServer) Run() error {
 	http.HandleFunc("/add-docs", func(w http.ResponseWriter, r *http.Request) {
 		var resp string
 
-		docs, err := app.LLMHandler.DocumentLoader(ctx)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		// docs, err := app.LLMHandler.DocumentLoader(ctx)
+		// if err != nil {
+		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+		// 	return
+		// }
+		// vectorDB, err := qdrant.New(cfg.Spec.VectorDB.Host, cfg.Spec.VectorDB.Port, "", app.Embedder)
+		// if err != nil {
+		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+		// 	return
+		// }
 
-		if len(docs) > 0 {
-			err = app.VectorDB.AddDocuments(ctx, docs)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		}
+		// if len(docs) > 0 {
+		// 	err = vectorDB.AddDocuments(ctx, docs)
+		// 	if err != nil {
+		// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		// 		return
+		// 	}
+		// }
 
 		fmt.Fprint(w, resp)
 	})

@@ -1,51 +1,48 @@
 package crawler
 
 import (
+	"context"
 	"fmt"
-	"net/url"
+	"net/http"
 	"strings"
 
-	"github.com/gocolly/colly"
+	"github.com/aguidirh/go-rag-chatbot/internal/pkg/adapters"
+	"github.com/gocolly/colly/v2"
+	"github.com/imroc/req/v3"
+	"github.com/tmc/langchaingo/documentloaders"
+	"github.com/tmc/langchaingo/textsplitter"
 )
 
-func (c *Crawler) GetDirectDescendants(baseUrl string, levels int) (map[string]any, error) {
-	descendants := make(map[string]any)
+func (c *Crawler) Crawl(baseUrl string, levels int, cb adapters.Crawlback) error {
+	fakeChrome := req.DefaultClient().ImpersonateChrome()
 
-	url, err := url.Parse(baseUrl)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse the provided URL %s. %v", baseUrl, err)
-	}
-
-	basePath := url.Path
-
-	c.collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
-		targetUrl := e.Attr("href")
-		if !strings.Contains(targetUrl, basePath) {
-			return
-		}
-
-		// to-do: we might want to provide additional context in the map. for now, we'll just
-		// use this to ensure we have no duplicate URLs
-		descendants[targetUrl] = targetUrl
+	crawler := colly.NewCollector(
+		colly.MaxDepth(2),
+		colly.UserAgent(fakeChrome.Headers.Get("user-agent")),
+	)
+	crawler.SetClient(&http.Client{
+		Transport: fakeChrome.Transport,
 	})
 
-	defer c.collector.OnHTMLDetach("a[href]")
+	crawler.OnHTML("section.section", func(e *colly.HTMLElement) {
+		parts := e.ChildTexts("*")
 
-	err = c.collector.Visit(baseUrl)
-	if err != nil {
-		return nil, fmt.Errorf("unable to visit the provided URL %s. %v", baseUrl, err)
-	}
-
-	if levels > 1 {
-		for url := range descendants {
-			innerDescendants, err := c.GetDirectDescendants(url, levels-1)
+		for _, part := range parts {
+			part = strings.TrimSpace(part)
+			docs, err := documentloaders.NewText(strings.NewReader(part)).LoadAndSplit(context.TODO(), textsplitter.NewRecursiveCharacter())
 			if err != nil {
-				return nil, fmt.Errorf("unable to get direct descendants %s. %v", baseUrl, err)
+				fmt.Errorf("unable to load and split the text part of the document. %v", err)
+				return
 			}
-			for innerUrl, _ := range innerDescendants {
-				descendants[innerUrl] = innerUrl
-			}
+
+			cb(part, docs, e)
 		}
+	})
+
+	err := crawler.Visit(baseUrl)
+	if err != nil {
+		return fmt.Errorf("unable to visit the provided URL %s. %v", baseUrl, err)
 	}
-	return descendants, nil
+
+	return nil
 }
