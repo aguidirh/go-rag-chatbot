@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/aguidirh/go-rag-chatbot/internal/pkg/adapters"
+	"github.com/aguidirh/go-rag-chatbot/internal/pkg/frameworks/util"
 	"github.com/gocolly/colly/v2"
 	"github.com/imroc/req/v3"
 	"github.com/tmc/langchaingo/documentloaders"
@@ -14,6 +15,7 @@ import (
 )
 
 func (c *Crawler) Crawl(baseUrl string, levels int, cb adapters.Crawlback) error {
+	buffer := util.NewCircularBuffer(3)
 	fakeChrome := req.DefaultClient().ImpersonateChrome()
 
 	crawler := colly.NewCollector(
@@ -29,9 +31,18 @@ func (c *Crawler) Crawl(baseUrl string, levels int, cb adapters.Crawlback) error
 
 		for _, part := range parts {
 			part = strings.TrimSpace(part)
-			docs, err := documentloaders.NewText(strings.NewReader(part)).LoadAndSplit(context.TODO(), textsplitter.NewRecursiveCharacter())
+			if len(part) < 50 {
+				continue
+			}
+			buffer.Add(part)
+			doc, err := buffer.Join() // Join all parts in the buffer into a single string
 			if err != nil {
-				fmt.Errorf("unable to load and split the text part of the document. %v", err)
+				c.log.Errorf("unable to join parts in the buffer. %v", err)
+				continue
+			}
+			docs, err := documentloaders.NewText(strings.NewReader(doc)).LoadAndSplit(context.TODO(), textsplitter.NewRecursiveCharacter())
+			if err != nil {
+				c.log.Errorf("unable to load and split the text part of the document. %v", err)
 				return
 			}
 
