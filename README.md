@@ -118,6 +118,43 @@ $ curl 127.0.0.1:6333
 {"title":"qdrant - vector search engine","version":"1.13.5","commit":"e282ed91e1f80a27cfa9d5d3d65b13b065b0eef8"
 ```
 
+#### Using a GO proxy (Optional)
+If saving time and network bandwidth when building the container image is important, it is possible to setup a GO Proxy. It will cache the dependencies and the podman-compose build will download them from there instead of getting them from the internet. 
+
+**IMPORTANT**: Run the steps below before podman-compose build.
+
+In the example below it is used [Athens](https://docs.gomods.io/), which is an open source enterprise ready Go Module proxy. Feel free to use other GO Proxys.
+
+**Step 1**:
+
+Create the directory where Athens will save the dependencies and export the path to the environment variable ATHENS_STORAGE.
+
+```
+export ATHENS_STORAGE=$HOME/athens-storage
+mkdir -p $ATHENS_STORAGE
+```
+
+**Step 2**:
+
+Run the Athens in a container with the following command:
+```
+podman run -d -v $ATHENS_STORAGE:/var/lib/athens:Z    \
+-e ATHENS_DISK_STORAGE_ROOT=/var/lib/athens    \
+-e ATHENS_STORAGE_TYPE=disk       \
+--name athens-goproxy    \
+--restart always    \
+-p 3000:3000    \
+gomods/athens:v0.15.4
+```
+
+**Step 3**:
+
+Export the GOPROXY environment variable, which will be used during the podman-compose build. The below config add `http://0.0.0.0:3000` as the first option to get the dependency.
+
+```
+export GOPROXY=http://0.0.0.0:3000,proxy.golang.org,direct
+```
+
 ## Using the Chatbot
 This section will show how to load the vector database with docs and how to interect with the chatbot
 
@@ -170,7 +207,10 @@ curl "http://localhost:8080/chat"
 * [LangChainGo](https://github.com/tmc/langchaingo)
 * [Qdrant](https://qdrant.tech/)
 * [Ollama](https://ollama.com/)
+* [Athens] (https://github.com/gomods/athens)
 
 ## Author
 
 * **Alex Guidi** - [LinkedIn](https://www.linkedin.com/in/alex-guidi) - [GitHub](https://github.com/aguidirh)
+* **Richard Vanderpool** - [LinkedIn](https://www.linkedin.com/in/richard-vanderpool-77376933/) - [GitHub](https://github.com/rvanderp3)
+

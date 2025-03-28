@@ -1,5 +1,7 @@
 FROM docker.io/library/golang:1.23.7 AS builder
 
+ARG GOPROXY
+ENV GOPROXY=$GOPROXY
 WORKDIR /go/src/github.com/aguidirh/go-rag-build
 COPY . .
 RUN NO_DOCKER=1 make build
