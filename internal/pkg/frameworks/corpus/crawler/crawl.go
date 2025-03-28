@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/aguidirh/go-rag-chatbot/internal/pkg/adapters"
@@ -33,15 +34,20 @@ func (c *Crawler) Crawl(baseUrl string, levels int, cb adapters.Crawlback, allow
 		// Visit link found on page
 		e.Request.Visit(link)
 	})
-
+	var lastURL string
 	crawler.OnHTML("section.section", func(e *colly.HTMLElement) {
 		parts := e.ChildTexts("*")
-
+		space := regexp.MustCompile(`\s+`)
 		for _, part := range parts {
-			part = strings.TrimSpace(part)
-			if len(part) < 50 {
-				continue
+			if e.Request.URL.Path != lastURL {
+				// try to keep relationships within a page
+				c.log.Infof("checking path: %s", e.Request.URL)
+				lastURL = e.Request.URL.Path
+				buffer = util.NewCircularBuffer(3)
 			}
+
+			part = strings.TrimSpace(part)
+			part = space.ReplaceAllString(part, " ")
 			buffer.Add(part)
 			doc, err := buffer.Join() // Join all parts in the buffer into a single string
 			if err != nil {
