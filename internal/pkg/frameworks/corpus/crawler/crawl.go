@@ -14,16 +14,24 @@ import (
 	"github.com/tmc/langchaingo/textsplitter"
 )
 
-func (c *Crawler) Crawl(baseUrl string, levels int, cb adapters.Crawlback) error {
+func (c *Crawler) Crawl(baseUrl string, levels int, cb adapters.Crawlback, allowedDomains []string) error {
 	buffer := util.NewCircularBuffer(3)
 	fakeChrome := req.DefaultClient().ImpersonateChrome()
 
 	crawler := colly.NewCollector(
-		colly.MaxDepth(2),
+		colly.MaxDepth(levels),
+		colly.AllowedDomains(allowedDomains...),
 		colly.UserAgent(fakeChrome.Headers.Get("user-agent")),
 	)
 	crawler.SetClient(&http.Client{
 		Transport: fakeChrome.Transport,
+	})
+
+	// On every a element which has href attribute call callback
+	crawler.OnHTML("a[href]", func(e *colly.HTMLElement) {
+		link := e.Attr("href")
+		// Visit link found on page
+		e.Request.Visit(link)
 	})
 
 	crawler.OnHTML("section.section", func(e *colly.HTMLElement) {
@@ -54,6 +62,6 @@ func (c *Crawler) Crawl(baseUrl string, levels int, cb adapters.Crawlback) error
 	if err != nil {
 		return fmt.Errorf("unable to visit the provided URL %s. %v", baseUrl, err)
 	}
-
+	crawler.Wait()
 	return nil
 }

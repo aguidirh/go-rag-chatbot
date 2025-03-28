@@ -17,6 +17,8 @@ type DocSourceHttp struct {
 	// FileType overrides the inferred file type. This is useful when calling a URL which doesn't have an
 	// explicit file type.
 	FileType string `yaml:"fileType"`
+
+	AllowedDomains []string `yaml:"allowedDomains"`
 }
 
 type DocSourceFile struct {

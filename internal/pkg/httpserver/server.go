@@ -69,8 +69,9 @@ func (h *HttpServer) Run() error {
 
 	http.HandleFunc("/chat", func(w http.ResponseWriter, r *http.Request) {
 		var resp string
+		collectionName := r.URL.Query().Get("collection-name")
 		// to-do, add a collection query parameter to the URL and use it to create a collection in qdrant if it doesn't exist.
-		vectorDB, err := qdrant.New(cfg.Spec.VectorDB.Host, cfg.Spec.VectorDB.Port, "", app.Embedder)
+		vectorDB, err := qdrant.New(cfg.Spec.VectorDB.Host, cfg.Spec.VectorDB.Port, collectionName, app.Embedder)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

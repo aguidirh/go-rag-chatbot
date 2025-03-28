@@ -49,6 +49,7 @@ func (k *KBLoader) Load() error {
 		err = k.LLMHandler.DocumentLoader(k.ctx, func(text string, docs []schema.Document, e *colly.HTMLElement) {
 			for _, d := range docs {
 				d.Metadata["id"] = e.Attr("id")
+				d.Metadata["path"] = e.Request.URL.Path
 				err = vectorDB.AddDocuments(k.ctx, []schema.Document{d})
 				if err != nil {
 					k.log.Errorf("failed to add documents to collection %s: %v", doc.Collection, err)

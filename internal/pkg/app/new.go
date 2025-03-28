@@ -21,7 +21,7 @@ type App struct {
 }
 
 func New(ctx context.Context, cfg data.Config, kbCfg data.KBConfig, log *logrus.Logger) (*App, error) {
-	llmHandler := langchain.New(cfg.Spec.LLM.Model, cfg.Spec.LLM.URL, cfg.Spec.LLM.ScoreThreshold, cfg.Spec.LLM.Temperature, kbCfg, log)
+	llmHandler := langchain.New(cfg.Spec.LLM.EmbeddingModel, cfg.Spec.LLM.URL, cfg.Spec.LLM.ScoreThreshold, cfg.Spec.LLM.Temperature, kbCfg, log)
 
 	embedder, err := llmHandler.NewEmbedder()
 	if err != nil {
