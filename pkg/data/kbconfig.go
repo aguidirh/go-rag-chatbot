@@ -17,6 +17,8 @@ type DocSourceHttp struct {
 	// FileType overrides the inferred file type. This is useful when calling a URL which doesn't have an
 	// explicit file type.
 	FileType string `yaml:"fileType"`
+
+	AllowedDomains []string `yaml:"allowedDomains"`
 }
 
 type DocSourceFile struct {
@@ -25,6 +27,10 @@ type DocSourceFile struct {
 
 	// Recurse indicates whether to recursively fetch and include all linked documents within this one.
 	Recurse bool `yaml:"recurse"`
+
+	// FileType overrides the inferred file type. This is useful when reading a file which doesn't have an
+	// explicit file type.
+	FileType string `yaml:"fileType"`
 }
 
 // DocSpec represents a document specification

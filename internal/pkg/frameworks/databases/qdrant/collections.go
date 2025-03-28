@@ -15,7 +15,7 @@ func (q QdrantDB) CreateCollection(ctx context.Context, collectionName string, v
 
 	collectionConfig := map[string]interface{}{
 		"vectors": map[string]interface{}{
-			"size":     vectorSize, //TODO ALEX make more flexible based on the model being used, for llama2 it is 4096
+			"size":     vectorSize,
 			"distance": distance,
 		},
 	}
@@ -39,6 +39,7 @@ func (q QdrantDB) AddDocuments(ctx context.Context, docs []schema.Document) erro
 			wg.Add(1)
 			go func(doc schema.Document) { //TODO add the done channel to avoid goroutine leak
 				defer wg.Done()
+				//vectorstores.Options.Embedder.EmbedDocuments()
 				_, err := q.store.AddDocuments(ctx, docs)
 				if err != nil {
 					log.Fatal(err) //TODO ALEX CHANGES ME

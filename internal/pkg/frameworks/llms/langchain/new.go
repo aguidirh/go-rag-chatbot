@@ -5,6 +5,7 @@ import (
 
 	"github.com/aguidirh/go-rag-chatbot/internal/pkg/adapters"
 	"github.com/aguidirh/go-rag-chatbot/internal/pkg/frameworks/corpus/crawler"
+	"github.com/aguidirh/go-rag-chatbot/internal/pkg/frameworks/util"
 	"github.com/aguidirh/go-rag-chatbot/pkg/data"
 	"github.com/sirupsen/logrus"
 	"github.com/tmc/langchaingo/llms/ollama"
@@ -18,6 +19,7 @@ type LanchChain struct {
 	kbCfg          data.KBConfig
 	log            *logrus.Logger
 	crawler        *crawler.Crawler
+	http           *util.HttpAccessor
 }
 
 func New(model, url string,
@@ -33,5 +35,5 @@ func New(model, url string,
 		log.Fatal(err)
 	}
 
-	return &LanchChain{model: model, scoreThreshold: scoreThreshold, temperature: temperature, llm: llm, kbCfg: kbCfg, log: logger, crawler: crawler.New()}
+	return &LanchChain{model: model, scoreThreshold: scoreThreshold, temperature: temperature, llm: llm, kbCfg: kbCfg, log: logger, crawler: crawler.New(logger), http: util.NewHttpAccessor()}
 }

@@ -1,51 +1,67 @@
 package crawler
 
 import (
+	"context"
 	"fmt"
-	"net/url"
+	"net/http"
 	"strings"
 
-	"github.com/gocolly/colly"
+	"github.com/aguidirh/go-rag-chatbot/internal/pkg/adapters"
+	"github.com/aguidirh/go-rag-chatbot/internal/pkg/frameworks/util"
+	"github.com/gocolly/colly/v2"
+	"github.com/imroc/req/v3"
+	"github.com/tmc/langchaingo/documentloaders"
+	"github.com/tmc/langchaingo/textsplitter"
 )
 
-func (c *Crawler) GetDirectDescendants(baseUrl string, levels int) (map[string]any, error) {
-	descendants := make(map[string]any)
+func (c *Crawler) Crawl(baseUrl string, levels int, cb adapters.Crawlback, allowedDomains []string) error {
+	buffer := util.NewCircularBuffer(3)
+	fakeChrome := req.DefaultClient().ImpersonateChrome()
 
-	url, err := url.Parse(baseUrl)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse the provided URL %s. %v", baseUrl, err)
-	}
-
-	basePath := url.Path
-
-	c.collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
-		targetUrl := e.Attr("href")
-		if !strings.Contains(targetUrl, basePath) {
-			return
-		}
-
-		// to-do: we might want to provide additional context in the map. for now, we'll just
-		// use this to ensure we have no duplicate URLs
-		descendants[targetUrl] = targetUrl
+	crawler := colly.NewCollector(
+		colly.MaxDepth(levels),
+		colly.AllowedDomains(allowedDomains...),
+		colly.UserAgent(fakeChrome.Headers.Get("user-agent")),
+	)
+	crawler.SetClient(&http.Client{
+		Transport: fakeChrome.Transport,
 	})
 
-	defer c.collector.OnHTMLDetach("a[href]")
+	// On every a element which has href attribute call callback
+	crawler.OnHTML("a[href]", func(e *colly.HTMLElement) {
+		link := e.Attr("href")
+		// Visit link found on page
+		e.Request.Visit(link)
+	})
 
-	err = c.collector.Visit(baseUrl)
-	if err != nil {
-		return nil, fmt.Errorf("unable to visit the provided URL %s. %v", baseUrl, err)
-	}
+	crawler.OnHTML("section.section", func(e *colly.HTMLElement) {
+		parts := e.ChildTexts("*")
 
-	if levels > 1 {
-		for url := range descendants {
-			innerDescendants, err := c.GetDirectDescendants(url, levels-1)
+		for _, part := range parts {
+			part = strings.TrimSpace(part)
+			if len(part) < 50 {
+				continue
+			}
+			buffer.Add(part)
+			doc, err := buffer.Join() // Join all parts in the buffer into a single string
 			if err != nil {
-				return nil, fmt.Errorf("unable to get direct descendants %s. %v", baseUrl, err)
+				c.log.Errorf("unable to join parts in the buffer. %v", err)
+				continue
 			}
-			for innerUrl, _ := range innerDescendants {
-				descendants[innerUrl] = innerUrl
+			docs, err := documentloaders.NewText(strings.NewReader(doc)).LoadAndSplit(context.TODO(), textsplitter.NewRecursiveCharacter())
+			if err != nil {
+				c.log.Errorf("unable to load and split the text part of the document. %v", err)
+				return
 			}
+
+			cb(part, docs, e)
 		}
+	})
+
+	err := crawler.Visit(baseUrl)
+	if err != nil {
+		return fmt.Errorf("unable to visit the provided URL %s. %v", baseUrl, err)
 	}
-	return descendants, nil
+	crawler.Wait()
+	return nil
 }
