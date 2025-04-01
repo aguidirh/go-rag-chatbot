@@ -17,6 +17,7 @@ var (
 func init() {
 	rootCmd.PersistentFlags().String("config-path", "~/.go-rag-chatbot", "Path to the configuration file")
 	rootCmd.PersistentFlags().String("log-level", "info", "Log level")
+	rootCmd.PersistentFlags().Bool("skip-kb-load", false, "Skips loading the knowledge base (KB) from the configuration file")
 	rootCmd.AddCommand(cmd.ServeCmd)
 }
 

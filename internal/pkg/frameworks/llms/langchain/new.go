@@ -13,16 +13,18 @@ import (
 
 type LanchChain struct {
 	model          string
+	embeddingModel string
 	scoreThreshold float32
 	temperature    float64
 	llm            *ollama.LLM
+	embeddingsLlm  *ollama.LLM
 	kbCfg          data.KBConfig
 	log            *logrus.Logger
 	crawler        *crawler.Crawler
 	http           *util.HttpAccessor
 }
 
-func New(model, url string,
+func New(model, embeddingModel, url string,
 	scoreThreshold float32,
 	temperature float64,
 	kbCfg data.KBConfig,
@@ -34,6 +36,10 @@ func New(model, url string,
 	if err != nil {
 		log.Fatal(err)
 	}
+	embeddingsLlm, err := ollama.New(ollama.WithModel(embeddingModel), ollama.WithServerURL(url))
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	return &LanchChain{model: model, scoreThreshold: scoreThreshold, temperature: temperature, llm: llm, kbCfg: kbCfg, log: logger, crawler: crawler.New(logger), http: util.NewHttpAccessor()}
+	return &LanchChain{model: model, embeddingModel: embeddingModel, scoreThreshold: scoreThreshold, temperature: temperature, llm: llm, embeddingsLlm: embeddingsLlm, kbCfg: kbCfg, log: logger, crawler: crawler.New(logger), http: util.NewHttpAccessor()}
 }

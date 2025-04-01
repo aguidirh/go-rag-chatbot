@@ -2,9 +2,9 @@ apiVersion: v1alpha1
 kind: GoRagChatbotConfig
 spec:
   vectorDB:
-    vectorSize: 384
+    vectorSize: 4096
   llm:
-    embeddingModel: all-minilm
+    embeddingModel: llama2
     model: llama2
     scoreThreshold: 0.5
     temperature: 0.8

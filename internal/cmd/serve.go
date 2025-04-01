@@ -76,6 +76,10 @@ var ServeCmd = &cobra.Command{
 		}
 		logger.SetLevel(parsedLevel)
 
+		skipKbLoad, err := cmd.Flags().GetBool("skip-kb-load")
+		if err != nil {
+			panic(fmt.Errorf("unable to parse skip-kb-load argument. %v", err))
+		}
 		server := httpserver.HttpServer{
 			ConfigPath:     configPath,
 			Log:            logger,
@@ -84,6 +88,7 @@ var ServeCmd = &cobra.Command{
 			VectorDBHost:   vectordbHost,
 			VectorDBPort:   vectordbPort,
 			ModelServerURL: modelServerUrl,
+			SkipKbLoad:     skipKbLoad,
 		}
 		server.Run()
 	},

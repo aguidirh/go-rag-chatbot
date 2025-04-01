@@ -24,6 +24,7 @@ type HttpServer struct {
 	BindPort       int
 	ModelServerURL string
 	Embedder       embeddings.Embedder
+	SkipKbLoad     bool
 }
 
 func (h *HttpServer) Run() error {
@@ -62,7 +63,7 @@ func (h *HttpServer) Run() error {
 		cfg.Spec.LLM.URL = h.ModelServerURL
 	}
 
-	app, err := app.New(ctx, cfg, kbCfg, h.Log)
+	app, err := app.New(ctx, cfg, kbCfg, h.SkipKbLoad, h.Log)
 	if err != nil {
 		return err
 	}

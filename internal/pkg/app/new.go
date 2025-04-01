@@ -20,17 +20,20 @@ type App struct {
 	log        *logrus.Logger
 }
 
-func New(ctx context.Context, cfg data.Config, kbCfg data.KBConfig, log *logrus.Logger) (*App, error) {
-	llmHandler := langchain.New(cfg.Spec.LLM.EmbeddingModel, cfg.Spec.LLM.URL, cfg.Spec.LLM.ScoreThreshold, cfg.Spec.LLM.Temperature, kbCfg, log)
+func New(ctx context.Context, cfg data.Config, kbCfg data.KBConfig, skipKbLoad bool, log *logrus.Logger) (*App, error) {
+	llmHandler := langchain.New(cfg.Spec.LLM.Model, cfg.Spec.LLM.EmbeddingModel, cfg.Spec.LLM.URL, cfg.Spec.LLM.ScoreThreshold, cfg.Spec.LLM.Temperature, kbCfg, log)
 
 	embedder, err := llmHandler.NewEmbedder()
 	if err != nil {
 		return nil, err
 	}
-	kbLoader := util.NewKBLoader(ctx, &kbCfg, &cfg, llmHandler, embedder, log)
-	err = kbLoader.Load()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load KB: %v", err)
+
+	if !skipKbLoad {
+		kbLoader := util.NewKBLoader(ctx, &kbCfg, &cfg, llmHandler, embedder, log)
+		err = kbLoader.Load()
+		if err != nil {
+			return nil, fmt.Errorf("failed to load KB: %v", err)
+		}
 	}
 
 	return &App{
