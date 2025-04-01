@@ -50,6 +50,9 @@ func (k *KBLoader) Load() error {
 			for _, d := range docs {
 				d.Metadata["id"] = e.Attr("id")
 				d.Metadata["path"] = e.Request.URL.Path
+				for k, v := range doc.Metadata {
+					d.Metadata[k] = v
+				}
 				err = vectorDB.AddDocuments(k.ctx, []schema.Document{d})
 				if err != nil {
 					k.log.Errorf("failed to add documents to collection %s: %v", doc.Collection, err)

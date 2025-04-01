@@ -1,10 +1,20 @@
 package data
 
+import "regexp"
+
 type DocumentType string
 
 const (
 	DOC_TYPE_HTTP = DocumentType("http")
 )
+
+// UrlFilter represents a filter for URLs based on allowed and skip lists.
+type UrlFilter struct {
+	Allowed       []string `yaml:"allowed"`
+	Skip          []string `yaml:"skip"`
+	AllowedRegexs []*regexp.Regexp
+	SkipRegexs    []*regexp.Regexp
+}
 
 type DocSourceHttp struct {
 	// URL is a string that holds the Uniform Resource Locator of the document.
@@ -19,6 +29,8 @@ type DocSourceHttp struct {
 	FileType string `yaml:"fileType"`
 
 	AllowedDomains []string `yaml:"allowedDomains"`
+
+	UrlFilter UrlFilter `yaml:"urlFilter"`
 }
 
 type DocSourceFile struct {
@@ -46,6 +58,11 @@ type DocSpec struct {
 
 	// DocSourceHttp is an array of DocSourceHttp entries representing HTTP-based sources for documents.
 	DocSourceHttp []DocSourceHttp `yaml:"httpSources"`
+
+	// Metadata contains additional metadata for the document specification. This can be used to store
+	// additional information that is relevant to the documents being imported, such as authorship information,
+	// publication dates, or any other custom fields.
+	Metadata map[string]string `yaml:"metadata"`
 }
 
 type KBConfigSpec struct {

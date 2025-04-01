@@ -32,7 +32,7 @@ func (l LanchChain) DocumentLoader(ctx context.Context, cb adapters.Crawlback, c
 			l.log.Warning("local files are not yet supported")
 		case "http":
 			for _, http := range doc.DocSourceHttp {
-				err := l.crawler.Crawl(http.URL, http.RecursionLevels, cb, http.AllowedDomains)
+				err := l.crawler.Crawl(http, cb)
 				if err != nil {
 					return fmt.Errorf("unable to crawl http document of %s. %v", http.URL, err)
 				}
