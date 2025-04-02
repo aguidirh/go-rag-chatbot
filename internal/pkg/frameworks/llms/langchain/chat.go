@@ -2,6 +2,7 @@ package langchain
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/tmc/langchaingo/chains"
@@ -10,7 +11,7 @@ import (
 )
 
 func (l LanchChain) NewEmbedder() (emb embeddings.Embedder, err error) {
-	e, err := embeddings.NewEmbedder(l.llm)
+	e, err := embeddings.NewEmbedder(l.embeddingLlm)
 	if err != nil {
 		log.Fatal(err) //TODO ALEX CHANGE ME
 		return nil, err
@@ -29,20 +30,34 @@ func (l LanchChain) Chat(ctx context.Context, vectorStore vectorstores.VectorSto
 		chains.WithTemperature(l.temperature),
 	}
 
-	res, err := chains.Run(
-		ctx,
-		chains.NewRetrievalQAFromLLM(
-			l.llm,
-			vectorstores.ToRetriever(vectorStore, 10, optionsVector...),
-		),
-		query,
-		options...,
-	)
+	retriever := vectorstores.ToRetriever(vectorStore, 5, optionsVector...)
+	// search
+	resDocs, err := retriever.GetRelevantDocuments(context.Background(), query)
+
+	stuffQAChain := chains.LoadStuffQA(l.chatLlm)
+	answer, err := chains.Call(context.Background(), stuffQAChain, map[string]any{
+		"input_documents": resDocs,
+		"question":        query,
+	}, options...)
 
 	if err != nil {
-		log.Fatal(err) //TODO ALEX CHANGE ME
+		log.Fatalf("Error running chain: %v", err)
 		return "", err
 	}
 
-	return res, nil
+	if answerText, ok := answer["text"]; ok {
+		if text, isString := answerText.(string); isString {
+			response = text
+			for _, doc := range resDocs {
+				if val, exists := doc.Metadata["url"]; exists {
+					response += fmt.Sprintf("\n- Source: %s", val)
+				}
+			}
+		} else {
+			response = "unexpected error"
+		}
+	} else {
+		log.Printf("Answer is not a string: %v", answer)
+	}
+	return response, nil
 }

@@ -25,7 +25,7 @@ type Config struct {
 
 		// LLM configuration
 		LLM struct {
-			Model          string  `yaml:"model"`          // The model used by the language learning system.
+			ChatModel      string  `yaml:"chatModel"`      // The model used by the language learning system.
 			EmbeddingModel string  `yaml:"embeddingModel"` // The embedding model used by the language learning system.
 			ScoreThreshold float32 `yaml:"scoreThreshold"` // The threshold score for generating responses.
 			Temperature    float64 `yaml:"temperature"`    // The temperature parameter influencing response diversity.

@@ -12,19 +12,19 @@ import (
 )
 
 type LanchChain struct {
-	model          string
 	embeddingModel string
+	chatModel      string
 	scoreThreshold float32
 	temperature    float64
-	llm            *ollama.LLM
-	embeddingsLlm  *ollama.LLM
+	embeddingLlm   *ollama.LLM
+	chatLlm        *ollama.LLM
 	kbCfg          data.KBConfig
 	log            *logrus.Logger
 	crawler        *crawler.Crawler
 	http           *util.HttpAccessor
 }
 
-func New(model, embeddingModel, url string,
+func New(chatModel, embeddingModel, url string,
 	scoreThreshold float32,
 	temperature float64,
 	kbCfg data.KBConfig,
@@ -32,14 +32,15 @@ func New(model, embeddingModel, url string,
 	if len(url) == 0 {
 		url = "http://127.0.0.1:11434"
 	}
-	llm, err := ollama.New(ollama.WithModel(model), ollama.WithServerURL(url))
-	if err != nil {
-		log.Fatal(err)
-	}
-	embeddingsLlm, err := ollama.New(ollama.WithModel(embeddingModel), ollama.WithServerURL(url))
+	embeddingLlm, err := ollama.New(ollama.WithModel(embeddingModel), ollama.WithServerURL(url))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return &LanchChain{model: model, embeddingModel: embeddingModel, scoreThreshold: scoreThreshold, temperature: temperature, llm: llm, embeddingsLlm: embeddingsLlm, kbCfg: kbCfg, log: logger, crawler: crawler.New(logger), http: util.NewHttpAccessor()}
+	chatLlm, err := ollama.New(ollama.WithModel(chatModel), ollama.WithServerURL(url))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return &LanchChain{embeddingModel: embeddingModel, chatLlm: chatLlm, chatModel: chatModel, scoreThreshold: scoreThreshold, temperature: temperature, embeddingLlm: embeddingLlm, kbCfg: kbCfg, log: logger, crawler: crawler.New(logger), http: util.NewHttpAccessor()}
 }

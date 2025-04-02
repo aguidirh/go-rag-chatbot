@@ -36,6 +36,3 @@ spec:
         recursionLevels: 3
         allowedDomains:
         - docs.redhat.com        
-    # - https://github.com/openshift/oc-mirror/blob/main/v2/docs/enclave_support.md
-    # - /assets/kb-docs
-    # - https://github.com/openshift/oc-mirror/tree/main/v2/docs

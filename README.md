@@ -59,12 +59,11 @@ config.yaml
 apiVersion: v1alpha1
 kind: GoRagChatbotConfig
 spec:
-  qdrant:
-    host: http://0.0.0.0
-    port: 6333
-    collection: oc-mirror
+  vectorDB:
+    vectorSize: 1024
   llm:
-    model: llama2
+    chatModel: qwen2:7b-instruct-q4_K_S
+    embeddingModel: mxbai-embed-large
     scoreThreshold: 0.5
     temperature: 0.8
   server:
@@ -79,11 +78,40 @@ apiVersion: v1alpha1
 kind: GoRagChatbotKnowledgeBaseConfig
 spec:
   docs:
-    - https://docs.openshift.com/container-platform/4.16/installing/disconnected_install/about-installing-oc-mirror-v2.html
-    - https://github.com/openshift/oc-mirror/blob/main/v2/docs/enclave_support.md
-    - /assets/kb-docs
-    - https://github.com/openshift/oc-mirror/tree/main/v2/docs
-
+    - type: "http"
+      collection: "OpenShift 4.18 Bare Metal Installation"
+      httpSources:    
+      - url: https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_bare_metal/index
+        fileType: "html"
+        urlFilter:
+          allowed:
+          - "install"
+          skip:
+          - "#"
+        recursionLevels: 3
+        allowedDomains:
+        - docs.redhat.com
+      metadata:
+        action: "installation"
+        platform: "bare metal"
+        version: "4.18"
+    - type: "http"
+      collection: "OpenShift 4.18 vSphere Installation"
+      metadata:
+        action: "installation"
+        platform: "vsphere"
+        version: "4.18"      
+      httpSources:    
+      - url: https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_vmware_vsphere/index
+        fileType: "html"
+        urlFilter:
+          allowed:
+          - "install"
+          skip:
+          - "#"
+        recursionLevels: 3
+        allowedDomains:
+        - docs.redhat.com  
 ```
 
 #### Step 3 - Run the ChatBot App
@@ -122,7 +150,7 @@ $ curl 127.0.0.1:6333
 This section will show how to load the vector database with docs and how to interect with the chatbot
 
 ### Creating a collection
-A collection is where the documents are going to be stored in the vector database. It is necessary to create a collection before adding documents to the database.
+A collection is where the documents are going to be stored in the vector database. By default, collections are created from kb-config.yaml and automatically populated based on the configuraiton. However, one can also create a collection manually by calling the `/create-collection` endpoint. It is necessary to create a collection before adding documents to the database.
 
 Since the chatbot is exposed as an http server, it is possible to create a new collection calling the following URL:
 
@@ -161,7 +189,9 @@ The chatbot is exposed in the following URL:
 Here is an example of a call using cURL:
 
 ```
-curl "http://localhost:8080/chat"
+$curl --location 'http://localhost:8080/chat?collection-name=OpenShift%204.18%20vSphere%20Installation' \
+--header 'Content-Type: text/plain' \
+--data 'How do I configure an external load balancer for a vSphere IPI cluster?
 ```
 
 ## Built With

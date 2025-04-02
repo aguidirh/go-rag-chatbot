@@ -3,6 +3,7 @@ package httpserver
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -78,7 +79,12 @@ func (h *HttpServer) Run() error {
 			return
 		}
 
-		query := r.URL.Query().Get("query") //TODO change it to a payload instead
+		bodyBytes, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		query := string(bodyBytes)
 
 		if query != "" {
 			resp, err = app.LLMHandler.Chat(ctx, vectorDB.GetStore(), query)

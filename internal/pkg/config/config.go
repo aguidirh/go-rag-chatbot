@@ -32,8 +32,8 @@ func (c *Config) EnsureDefaults(cfg data.Config) data.Config {
 	if cfg.Spec.VectorDB.Distance == "" {
 		cfg.Spec.VectorDB.Distance = "Cosine"
 	}
-	if cfg.Spec.LLM.Model == "" {
-		cfg.Spec.LLM.Model = "llama2"
+	if cfg.Spec.LLM.ChatModel == "" {
+		cfg.Spec.LLM.ChatModel = "llama2"
 	}
 	if cfg.Spec.LLM.ScoreThreshold == 0.0 {
 		cfg.Spec.LLM.ScoreThreshold = 0.5

@@ -41,36 +41,4 @@ func (l LanchChain) DocumentLoader(ctx context.Context, cb adapters.Crawlback, c
 	}
 
 	return nil
-
-	// f, err := os.Open("/home/aguidi/go/src/github.com/aguidirh/go-rag-chatbot/test.txt")
-	// if err != nil {
-	// 	fmt.Println("Error opening file: ", err)
-	// }
-
-	// docs, err = documentloaders.NewText(f).LoadAndSplit(ctx, textsplitter.NewRecursiveCharacter())
-	// // fmt.Println(docs_text)
-
-	// if err != nil {
-	// 	log.Fatal(err) //TODO ALEX CHANGE ME
-	// 	return nil, err
-	// }
-
-	// case ".htm", ".html":
-	// 	if strings.Contains(doc, "http") {
-	// 		resp, err := httpCall(doc)
-	// 		if err != nil {
-	// 			return nil, err
-	// 		}
-	// 		defer resp.Body.Close()
-	// 		newDocs, err := documentloaders.NewHTML(resp.Body).LoadAndSplit(ctx, textsplitter.NewRecursiveCharacter())
-	// 		if err != nil {
-	// 			return nil, err
-	// 		}
-	// 		docs = append(docs, newDocs...)
-	// 	} else {
-	// 		//TODO ALEX implement file loader
-	// 	}
-
-	// }
-
 }

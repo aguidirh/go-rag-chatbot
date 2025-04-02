@@ -50,6 +50,7 @@ func (k *KBLoader) Load() error {
 			for _, d := range docs {
 				d.Metadata["id"] = e.Attr("id")
 				d.Metadata["path"] = e.Request.URL.Path
+				d.Metadata["url"] = fmt.Sprintf("%s#%s", e.Request.URL.String(), d.Metadata["id"])
 				for k, v := range doc.Metadata {
 					d.Metadata[k] = v
 				}
