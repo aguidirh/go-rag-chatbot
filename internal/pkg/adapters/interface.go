@@ -15,7 +15,7 @@ type VectorDB interface {
 	GetStore() vectorstores.VectorStore
 }
 
-type Crawlback func(text string, docs []schema.Document, e *colly.HTMLElement)
+type Crawlback func(docs []schema.Document, e *colly.HTMLElement)
 
 type LLMHandler interface {
 	NewEmbedder() (emb embeddings.Embedder, err error)

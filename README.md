@@ -164,6 +164,7 @@ Here is an example of a call using cURL:
 curl "http://localhost:8080/create-collection?collection-name=alex-test"
 ```
 
+
 ### Adding documents to the vector database
 The chatbot does not know about specific things related to your business/domain. It is possible to add domain specific document calling the following URL:
 
@@ -175,6 +176,15 @@ Here is an example of a call using cURL:
 
 ```
 curl "http://localhost:8080/add-docs"
+```
+
+### Initializing the vector database
+The vector database can be reinitialized by calling the `/initialize-kb` endpoint. If no collection name is provided, all collections will be reinitialized. If a collection name is provided, only that collection will be reinitialized. 
+
+Here is an example of a call using cURL:
+
+```
+curl --location 'http://localhost:8080/initialize-kb?collection-name=OpenShift%204.18%20vSphere%20Installation'
 ```
 
 ### Chating with the chat bot

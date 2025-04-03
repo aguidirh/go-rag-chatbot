@@ -16,9 +16,9 @@ type App struct {
 	cfg        data.Config
 	kbCfg      data.KBConfig
 	LLMHandler adapters.LLMHandler
-
-	Embedder embeddings.Embedder
-	log      *logrus.Logger
+	KBLoader   *util.KBLoader
+	Embedder   embeddings.Embedder
+	log        *logrus.Logger
 }
 
 func New(ctx context.Context, cfg data.Config, kbCfg data.KBConfig, skipKbLoad bool, log *logrus.Logger) (*App, error) {
@@ -28,8 +28,8 @@ func New(ctx context.Context, cfg data.Config, kbCfg data.KBConfig, skipKbLoad b
 		return nil, err
 	}
 
+	kbLoader := util.NewKBLoader(ctx, &kbCfg, &cfg, embeddingLlmHandler, embedder, log)
 	if !skipKbLoad {
-		kbLoader := util.NewKBLoader(ctx, &kbCfg, &cfg, embeddingLlmHandler, embedder, log)
 		err = kbLoader.Load()
 		if err != nil {
 			return nil, fmt.Errorf("failed to load KB: %v", err)
@@ -42,5 +42,6 @@ func New(ctx context.Context, cfg data.Config, kbCfg data.KBConfig, skipKbLoad b
 		LLMHandler: embeddingLlmHandler,
 		Embedder:   embedder,
 		log:        log,
+		KBLoader:   kbLoader,
 	}, nil
 }

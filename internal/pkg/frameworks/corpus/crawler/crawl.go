@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/aguidirh/go-rag-chatbot/internal/pkg/adapters"
-	"github.com/aguidirh/go-rag-chatbot/internal/pkg/frameworks/util"
 	"github.com/aguidirh/go-rag-chatbot/pkg/data"
 	"github.com/gocolly/colly/v2"
 	"github.com/imroc/req/v3"
@@ -18,9 +17,7 @@ import (
 )
 
 func (c *Crawler) Crawl(htmlDoc data.DocSourceHttp, cb adapters.Crawlback) error {
-	buffer := util.NewCircularBuffer(3)
 	fakeChrome := req.DefaultClient().ImpersonateChrome()
-	space := regexp.MustCompile(`\s+`)
 
 	if len(htmlDoc.UrlFilter.Allowed) > 0 && len(htmlDoc.UrlFilter.AllowedRegexs) == 0 {
 		for _, pattern := range htmlDoc.UrlFilter.Allowed {
@@ -94,35 +91,26 @@ func (c *Crawler) Crawl(htmlDoc data.DocSourceHttp, cb adapters.Crawlback) error
 		// Visit link found on page
 		e.Request.Visit(link)
 	})
-	var lastURL string
+	//var lastURL string
 	crawler.OnHTML("section.section", func(e *colly.HTMLElement) {
-		parts := e.ChildTexts("*")
-		for _, part := range parts {
-			if e.Request.URL.Path != lastURL {
-				// try to keep relationships within a page
-				c.log.Infof("checking path: %s", e.Request.URL)
-				lastURL = e.Request.URL.Path
-				buffer = util.NewCircularBuffer(3)
-			}
-			part = strings.TrimSpace(part)
-			part = space.ReplaceAllString(part, " ")
-			if len(part) < 20 {
-				continue
-			}
-			buffer.Add(part)
-			doc, err := buffer.Join() // Join all parts in the buffer into a single string
-			if err != nil {
-				c.log.Errorf("unable to join parts in the buffer. %v", err)
-				continue
-			}
-			docs, err := documentloaders.NewText(strings.NewReader(doc)).LoadAndSplit(context.TODO(), textsplitter.NewRecursiveCharacter())
-			if err != nil {
-				c.log.Errorf("unable to load and split the text part of the document. %v", err)
-				return
-			}
 
-			cb(part, docs, e)
+		parts := e.ChildTexts("*")
+		c.log.Infof("loading section containing %d text parts", len(parts))
+		sectionText := strings.Join(parts, "\n")
+
+		docs, err := documentloaders.NewHTML(strings.NewReader(sectionText)).LoadAndSplit(context.TODO(), textsplitter.NewRecursiveCharacter())
+		if err != nil {
+			c.log.Errorf("unable to load and split the text part of the document. %v", err)
+			return
 		}
+
+		for _, doc := range docs {
+			for k, v := range htmlDoc.Metadata {
+				doc.Metadata[k] = v
+			}
+		}
+		cb(docs, e)
+
 	})
 
 	err := crawler.Visit(htmlDoc.URL)

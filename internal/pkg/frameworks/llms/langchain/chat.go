@@ -50,7 +50,7 @@ func (l LanchChain) Chat(ctx context.Context, vectorStore vectorstores.VectorSto
 			response = text
 			for _, doc := range resDocs {
 				if val, exists := doc.Metadata["url"]; exists {
-					response += fmt.Sprintf("\n- Source: %s", val)
+					response += fmt.Sprintf("\n- source: %s", val)
 				}
 			}
 		} else {

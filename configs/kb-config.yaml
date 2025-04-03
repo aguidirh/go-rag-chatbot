@@ -2,27 +2,44 @@ apiVersion: v1alpha1
 kind: GoRagChatbotKnowledgeBaseConfig
 spec:
   docs:
-    # - type: "http"
-    #   collection: "OpenShift 4.18 Bare Metal Installation"
-    #   httpSources:    
-    #   - url: https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_bare_metal/index
-    #     fileType: "html"
-    #     urlFilter:
-    #       allowed:
-    #       - "install"
-    #       skip:
-    #       - "#"
-    #     recursionLevels: 3
-    #     allowedDomains:
-    #     - docs.redhat.com
-    #   metadata:
-    #     action: "installation"
-    #     platform: "bare metal"
-    #     version: "4.18"
+    - type: "http"
+      collection: "OpenShift 4.18 Bare Metal Installation"
+      httpSources:    
+      - url: https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_bare_metal/index
+        fileType: "html"
+        urlFilter:
+          allowed:
+          - "install"
+          skip:
+          - "#"
+        recursionLevels: 3
+        allowedDomains:
+        - docs.redhat.com
+      metadata:
+        action: "installation"
+        platform: "bare metal"
+        version: "4.18"
+    - type: "http"
+      collection: "OpenShift 4.18 Disconnected Environments"
+      metadata:
+        platform: "all"
+        version: "4.18"      
+      httpSources:    
+      - url: https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/disconnected_environments/index
+        fileType: "html"
+        urlFilter:
+          allowed:
+          - "disconnected"
+          skip:
+          - "#"
+        recursionLevels: 3
+        allowedDomains:
+        - docs.redhat.com
+        metadata:
+          action: "installation"
     - type: "http"
       collection: "OpenShift 4.18 vSphere Installation"
       metadata:
-        action: "installation"
         platform: "vsphere"
         version: "4.18"      
       httpSources:    
@@ -35,4 +52,19 @@ spec:
           - "#"
         recursionLevels: 3
         allowedDomains:
-        - docs.redhat.com        
+        - docs.redhat.com
+        metadata:
+          action: "installation"          
+      - url: https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/machine_configuration/index
+        fileType: "html"
+        urlFilter:
+          allowed:
+          - "machine"
+          skip:
+          - "#"
+        recursionLevels: 3
+        allowedDomains:
+        - docs.redhat.com       
+        metadata:
+          action: "day 2"
+         

@@ -97,6 +97,32 @@ func (h *HttpServer) Run() error {
 		fmt.Fprint(w, resp)
 	})
 
+	http.HandleFunc("/initialize-kb", func(w http.ResponseWriter, r *http.Request) {
+		var resp string
+		collectionName := r.URL.Query().Get("collection-name")
+		if len(collectionName) == 0 {
+			h.Log.Infof("Initializing database for all collections")
+		} else {
+			h.Log.Infof("Initializing database for collection: %s", collectionName)
+		}
+
+		go func() {
+			if collectionName == "" { // Initialize all collections
+				err := app.KBLoader.Load()
+				if err != nil {
+					h.Log.Errorf("failed to load KB: %v", err)
+				}
+			}
+			err := app.KBLoader.Load(collectionName)
+			if err != nil {
+				h.Log.Errorf("failed to load KB: %v", err)
+			}
+		}()
+		resp = "Vector database is being initialized. Impacted collections may be momentarily unavailable. Please try again later. Thank you for your patience!"
+
+		fmt.Fprint(w, resp)
+	})
+
 	http.HandleFunc("/create-collection", func(w http.ResponseWriter, r *http.Request) {
 		var resp string
 

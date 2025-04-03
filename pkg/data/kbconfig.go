@@ -30,7 +30,12 @@ type DocSourceHttp struct {
 
 	AllowedDomains []string `yaml:"allowedDomains"`
 
-	UrlFilter UrlFilter `yaml:"urlFilter"`
+	UrlFilter *UrlFilter `yaml:"urlFilter"`
+
+	// Metadata contains additional metadata for the document specification. This can be used to store
+	// additional information that is relevant to the documents being imported, such as authorship information,
+	// publication dates, or any other custom fields.
+	Metadata map[string]string `yaml:"metadata"`
 }
 
 type DocSourceFile struct {
