@@ -5,22 +5,26 @@ import (
 
 	"github.com/aguidirh/go-rag-chatbot/internal/pkg/adapters"
 	"github.com/aguidirh/go-rag-chatbot/internal/pkg/frameworks/corpus/crawler"
+	"github.com/aguidirh/go-rag-chatbot/internal/pkg/frameworks/util"
 	"github.com/aguidirh/go-rag-chatbot/pkg/data"
 	"github.com/sirupsen/logrus"
 	"github.com/tmc/langchaingo/llms/ollama"
 )
 
 type LanchChain struct {
-	model          string
+	embeddingModel string
+	chatModel      string
 	scoreThreshold float32
 	temperature    float64
-	llm            *ollama.LLM
+	embeddingLlm   *ollama.LLM
+	chatLlm        *ollama.LLM
 	kbCfg          data.KBConfig
 	log            *logrus.Logger
 	crawler        *crawler.Crawler
+	http           *util.HttpAccessor
 }
 
-func New(model, url string,
+func New(chatModel, embeddingModel, url string,
 	scoreThreshold float32,
 	temperature float64,
 	kbCfg data.KBConfig,
@@ -28,10 +32,15 @@ func New(model, url string,
 	if len(url) == 0 {
 		url = "http://127.0.0.1:11434"
 	}
-	llm, err := ollama.New(ollama.WithModel(model), ollama.WithServerURL(url))
+	embeddingLlm, err := ollama.New(ollama.WithModel(embeddingModel), ollama.WithServerURL(url))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return &LanchChain{model: model, scoreThreshold: scoreThreshold, temperature: temperature, llm: llm, kbCfg: kbCfg, log: logger, crawler: crawler.New()}
+	chatLlm, err := ollama.New(ollama.WithModel(chatModel), ollama.WithServerURL(url))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return &LanchChain{embeddingModel: embeddingModel, chatLlm: chatLlm, chatModel: chatModel, scoreThreshold: scoreThreshold, temperature: temperature, embeddingLlm: embeddingLlm, kbCfg: kbCfg, log: logger, crawler: crawler.New(logger), http: util.NewHttpAccessor()}
 }

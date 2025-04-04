@@ -5,29 +5,56 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/aguidirh/go-rag-chatbot/internal/pkg/adapters"
+	"github.com/aguidirh/go-rag-chatbot/internal/pkg/frameworks/util"
+	"github.com/stretchr/objx"
 	"github.com/tmc/langchaingo/documentloaders"
-	"github.com/tmc/langchaingo/schema"
 	"github.com/tmc/langchaingo/textsplitter"
 )
 
-func (l LanchChain) getHttpDocument(ctx context.Context, url string) ([]schema.Document, error) {
-	resp, err := httpCall(url)
+// LoadDocumentsFromText loads documents from a given text string and metadata.
+func (l LanchChain) LoadDocumentsFromHttpRequest(ctx context.Context, cb adapters.Crawlback, text string, r *http.Request) error {
+	docs, err := documentloaders.NewText(r.Body).LoadAndSplit(ctx, textsplitter.NewRecursiveCharacter())
+
 	if err != nil {
-		return nil, fmt.Errorf("unable to get document(s) from %s. %v", url, err)
+		return fmt.Errorf("unable to load and split the text part of the document. %v", err)
 	}
-	defer resp.Body.Close()
-	newDocs, err := documentloaders.NewText(resp.Body).LoadAndSplit(ctx, textsplitter.NewMarkdownTextSplitter())
+
+	metadataParam := util.GetQueryParameterAsString(r, "metadata", "{}")
+	metadata, err := objx.FromJSON(metadataParam)
 	if err != nil {
-		return nil, fmt.Errorf("unable to load document(s) from %s. %v", url, err)
+		return fmt.Errorf("unable to parse metadata. %v", err)
 	}
-	return newDocs, nil
+
+	for _, doc := range docs {
+		for k, v := range metadata {
+			doc.Metadata[k] = v
+		}
+	}
+	err = cb(docs, nil)
+	if err != nil {
+		return fmt.Errorf("error encountered in callback function. %v", err)
+	}
+	return err
 }
 
-func (l LanchChain) DocumentLoader(ctx context.Context) ([]schema.Document, error) {
-
-	var docs []schema.Document
-	var err error
+// LoadDocumentsFromConfig loads documents from the knowledge base configuration.
+// It returns a slice of schema.Document and an error if any. If no collections are provided, it loads all documents.
+func (l LanchChain) LoadDocumentsFromConfig(ctx context.Context, cb adapters.Crawlback, collections ...string) error {
 	for _, doc := range l.kbCfg.Spec.Docs {
+		if len(collections) > 0 {
+			match := false
+			for _, collection := range collections {
+				if collection == doc.Collection {
+					match = true
+					break
+				}
+			}
+			if !match {
+				continue
+			}
+		}
+
 		if len(doc.Type) == 0 {
 			doc.Type = "http"
 		}
@@ -36,67 +63,13 @@ func (l LanchChain) DocumentLoader(ctx context.Context) ([]schema.Document, erro
 			l.log.Warning("local files are not yet supported")
 		case "http":
 			for _, http := range doc.DocSourceHttp {
-				if http.RecursionLevels > 0 {
-					descendants, err := l.crawler.GetDirectDescendants(http.URL, http.RecursionLevels)
-					if err != nil {
-						return nil, fmt.Errorf("unable to get descendants of %s. %v", http.URL, err)
-					}
-					for descendant := range descendants {
-						descendantDocs, err := l.getHttpDocument(ctx, descendant)
-						if err != nil {
-							return nil, fmt.Errorf("unable to get http document of %s. %v", http.URL, err)
-						}
-						docs = append(docs, descendantDocs...)
-					}
-				} else {
-					docs, err = l.getHttpDocument(ctx, http.URL)
-					if err != nil {
-						return nil, fmt.Errorf("unable to get http document of %s. %v", http.URL, err)
-					}
+				err := l.crawler.Crawl(http, cb)
+				if err != nil {
+					return fmt.Errorf("unable to crawl http document of %s. %v", http.URL, err)
 				}
 			}
 		}
-		// case ".htm", ".html":
-		// 	if strings.Contains(doc, "http") {
-		// 		resp, err := httpCall(doc)
-		// 		if err != nil {
-		// 			return nil, err
-		// 		}
-		// 		defer resp.Body.Close()
-		// 		newDocs, err := documentloaders.NewHTML(resp.Body).LoadAndSplit(ctx, textsplitter.NewRecursiveCharacter())
-		// 		if err != nil {
-		// 			return nil, err
-		// 		}
-		// 		docs = append(docs, newDocs...)
-		// 	} else {
-		// 		//TODO ALEX implement file loader
-		// 	}
-
-		// }
 	}
 
-	return docs, nil
-
-	// f, err := os.Open("/home/aguidi/go/src/github.com/aguidirh/go-rag-chatbot/test.txt")
-	// if err != nil {
-	// 	fmt.Println("Error opening file: ", err)
-	// }
-
-	// docs, err = documentloaders.NewText(f).LoadAndSplit(ctx, textsplitter.NewRecursiveCharacter())
-	// // fmt.Println(docs_text)
-
-	// if err != nil {
-	// 	log.Fatal(err) //TODO ALEX CHANGE ME
-	// 	return nil, err
-	// }
-}
-
-func httpCall(resource string) (*http.Response, error) {
-	resp, err := http.Get(resource)
-
-	if err != nil {
-		return resp, err
-	}
-
-	return resp, nil
+	return nil
 }

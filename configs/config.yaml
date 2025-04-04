@@ -1,12 +1,11 @@
 apiVersion: v1alpha1
 kind: GoRagChatbotConfig
 spec:
-  qdrant:
-    host: http://0.0.0.0
-    port: 6333
-    collection: oc-mirror
+  vectorDB:
+    vectorSize: 1024
   llm:
-    model: llama2
+    chatModel: qwen2:7b-instruct-q4_K_S
+    embeddingModel: mxbai-embed-large
     scoreThreshold: 0.5
     temperature: 0.8
   server:

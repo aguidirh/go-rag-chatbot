@@ -16,6 +16,10 @@ type KbConfig struct {
 	Log        *logrus.Logger
 }
 
+func (k *KbConfig) EnsureDefaults(cfg data.KBConfig) data.KBConfig {
+	return cfg
+}
+
 func (k *KbConfig) LoadKBConfig() (data.KBConfig, error) {
 	var kbCfg data.KBConfig
 
