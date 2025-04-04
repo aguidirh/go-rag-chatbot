@@ -17,6 +17,11 @@ type Crawler struct {
 	log             *logrus.Logger
 }
 
+/*
+Crawler is a service that crawls a website and extracts text content. It uses the colly library to perform web scraping.
+It takes an HTML document source data (htmlDoc) and a callback function (cb) as input.
+The htmlDoc contains metadata about the URL and allowed/allowed-regexs/skip/skip-regexs filters, while cb is called for each extracted text content.
+*/
 func New(log *logrus.Logger) *Crawler {
 	cachePath := ".cache"
 	collectionsPath := "collections"

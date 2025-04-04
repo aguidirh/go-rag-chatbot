@@ -66,7 +66,7 @@ func (k *KBLoader) Load(collections ...string) error {
 			k.log.Errorf("failed to create collection %s: %v", doc.Collection, err)
 			continue
 		}
-		err = k.LLMHandler.DocumentLoader(k.ctx, func(docs []schema.Document, e *colly.HTMLElement) {
+		err = k.LLMHandler.LoadDocumentsFromConfig(k.ctx, func(docs []schema.Document, e *colly.HTMLElement) error {
 			for _, d := range docs {
 				d.Metadata["id"] = e.Attr("id")
 				d.Metadata["path"] = e.Request.URL.Path
@@ -80,6 +80,7 @@ func (k *KBLoader) Load(collections ...string) error {
 					continue
 				}
 			}
+			return nil
 		}, doc.Collection)
 		if err != nil {
 			k.log.Errorf("failed to load documents for collection %s: %v", doc.Collection, err)

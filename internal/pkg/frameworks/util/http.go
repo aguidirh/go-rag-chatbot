@@ -2,8 +2,10 @@ package util
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/tmc/langchaingo/documentloaders"
 	"github.com/tmc/langchaingo/schema"
@@ -47,4 +49,43 @@ func (h *HttpAccessor) Get(resource string) (*http.Response, error) {
 // NewHttpAccessor creates a new instance of HttpAccessor.
 func NewHttpAccessor() *HttpAccessor {
 	return &HttpAccessor{}
+}
+
+// GetQueryParameterAsString retrieves the query parameter value for the specified key from the request URL.
+//
+// If the key is not present or has an empty value, the defaultValue is returned.
+// This function parses the URL's query parameters using r.URL.Query().
+func GetQueryParameterAsString(r *http.Request, key string, defaultValue string) string {
+	value := r.URL.Query().Get(key)
+	if value == "" {
+		return defaultValue
+	}
+	return value
+}
+
+// GetQueryParameterAsInt retrieves the query parameter value for the specified key from the request URL and converts it to an integer.
+//
+// If the key is not present or has an empty value, the defaultValue is returned.
+// If the conversion to an integer fails, an error is returned.
+func GetQueryParameterAsInt(r *http.Request, key string, defaultValue int) int {
+	valueStr := r.URL.Query().Get(key)
+	if valueStr == "" {
+		return defaultValue
+	}
+	value, err := strconv.Atoi(valueStr)
+	if err != nil {
+		return defaultValue
+	}
+	return value
+}
+
+// RequiredParameterAsString retrieves the query parameter value for the specified key from the request URL.
+//
+// If the key is not present or has an empty value, it returns an error with a message indicating that the required parameter was missing.
+func RequiredParameterAsString(r *http.Request, param string) (string, error) {
+	value := r.URL.Query().Get(param)
+	if value == "" {
+		return "", errors.New("missing required parameter: " + param)
+	}
+	return value, nil
 }

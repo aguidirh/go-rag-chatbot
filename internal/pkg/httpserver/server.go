@@ -7,12 +7,15 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/aguidirh/go-rag-chatbot/internal/pkg/adapters"
 	"github.com/aguidirh/go-rag-chatbot/internal/pkg/app"
 	"github.com/aguidirh/go-rag-chatbot/internal/pkg/config"
-	"github.com/aguidirh/go-rag-chatbot/internal/pkg/frameworks/databases/qdrant"
+	"github.com/aguidirh/go-rag-chatbot/internal/pkg/frameworks/util"
 	"github.com/aguidirh/go-rag-chatbot/pkg/data"
+	"github.com/gocolly/colly/v2"
 	"github.com/sirupsen/logrus"
 	"github.com/tmc/langchaingo/embeddings"
+	"github.com/tmc/langchaingo/schema"
 )
 
 type HttpServer struct {
@@ -26,6 +29,7 @@ type HttpServer struct {
 	ModelServerURL string
 	Embedder       embeddings.Embedder
 	SkipKbLoad     bool
+	vectorDB       adapters.VectorDB
 }
 
 func (h *HttpServer) Run() error {
@@ -69,22 +73,33 @@ func (h *HttpServer) Run() error {
 		return err
 	}
 
+	embeddingLlmHandler := app.LLMHandler
+
 	http.HandleFunc("/chat", func(w http.ResponseWriter, r *http.Request) {
-		var resp string
-		collectionName := r.URL.Query().Get("collection-name")
-		// to-do, add a collection query parameter to the URL and use it to create a collection in qdrant if it doesn't exist.
-		vectorDB, err := qdrant.New(cfg.Spec.VectorDB.Host, cfg.Spec.VectorDB.Port, collectionName, app.Embedder)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		var resp, query, collectionName string
+		var vectorDB adapters.VectorDB
 
 		bodyBytes, err := io.ReadAll(r.Body)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
+			resp = fmt.Sprintf("unable to parse request body. %v", err)
+			h.Log.Error(resp)
+			goto chat_response
 		}
-		query := string(bodyBytes)
+		query = string(bodyBytes)
+
+		collectionName, err = util.RequiredParameterAsString(r, "collection-name")
+		if err != nil {
+			resp = fmt.Sprintf("unable to get collection name. %v", err)
+			h.Log.Error(resp)
+			goto chat_response
+		}
+
+		vectorDB, err = util.GetVectorDBForCollection(collectionName, &cfg.Spec.VectorDB, app.Embedder)
+		if err != nil {
+			resp = fmt.Sprintf("unable to get vector db. %v", err)
+			h.Log.Error(resp)
+			goto chat_response
+		}
 
 		if query != "" {
 			resp, err = app.LLMHandler.Chat(ctx, vectorDB.GetStore(), query)
@@ -93,11 +108,11 @@ func (h *HttpServer) Run() error {
 				return
 			}
 		}
-
+	chat_response:
 		fmt.Fprint(w, resp)
 	})
 
-	http.HandleFunc("/initialize-kb", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/collections/initialize", func(w http.ResponseWriter, r *http.Request) {
 		var resp string
 		collectionName := r.URL.Query().Get("collection-name")
 		if len(collectionName) == 0 {
@@ -123,50 +138,104 @@ func (h *HttpServer) Run() error {
 		fmt.Fprint(w, resp)
 	})
 
-	http.HandleFunc("/create-collection", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/collection", func(w http.ResponseWriter, r *http.Request) {
 		var resp string
-
+		vectorSize := util.GetQueryParameterAsInt(r, "vector-size", cfg.Spec.VectorDB.VectorSize)
+		distance := util.GetQueryParameterAsString(r, "distance", cfg.Spec.VectorDB.Distance)
 		collectionName := r.URL.Query().Get("collection-name")
-		vectorDB, err := qdrant.New(cfg.Spec.VectorDB.Host, cfg.Spec.VectorDB.Port, collectionName, app.Embedder)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		if collectionName != "" {
-			err = vectorDB.CreateCollection(ctx, collectionName, 4096, "Cosine") //TODO ALEX get the size according to the llm used
+		if len(collectionName) == 0 {
+			resp = "Please provide a collection name."
 
+		} else {
+			vectorDB, err := util.GetVectorDBForCollection(collectionName, &cfg.Spec.VectorDB, app.Embedder)
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
+				resp = fmt.Sprintf("unable to get vector db. %v", err)
+				h.Log.Error(resp)
+				goto collection_result
 			}
 
+			exists, err := vectorDB.DoesCollectionExist(ctx, collectionName)
+			if err != nil {
+				h.Log.Errorf("failed to check if collection exists: %v", err)
+				resp = "Failed to check if collection exists"
+				goto collection_result
+			}
+
+			if r.Method == "GET" {
+				resp = fmt.Sprintf("Collection %s exists: %t", collectionName, exists)
+			} else if r.Method == "POST" && !exists {
+				err := vectorDB.CreateCollection(ctx, collectionName, vectorSize, distance)
+				if err != nil {
+					h.Log.Errorf("failed to create collection: %v", err)
+					resp = "Failed to create collection"
+					goto collection_result
+				} else {
+					resp = fmt.Sprintf("Collection %s created successfully", collectionName)
+					goto collection_result
+				}
+			} else if r.Method == "POST" && exists {
+				resp = fmt.Sprintf("Collection %s already exists", collectionName)
+			} else if r.Method == "DELETE" {
+				if exists {
+					err := vectorDB.DeleteCollection(ctx, collectionName)
+					if err != nil {
+						h.Log.Errorf("failed to delete collection: %v", err)
+						resp = "Failed to delete collection"
+						goto collection_result
+					}
+					resp = fmt.Sprintf("Collection %s deleted successfully", collectionName)
+				} else {
+					resp = fmt.Sprintf("Collection %s does not exist", collectionName)
+				}
+			} else {
+				resp = "Invalid request method"
+			}
 		}
 
+	collection_result:
 		fmt.Fprint(w, resp)
 	})
 
-	http.HandleFunc("/add-docs", func(w http.ResponseWriter, r *http.Request) {
-		var resp string
+	http.HandleFunc("/docs/add", func(w http.ResponseWriter, r *http.Request) {
+		var resp, collectionName string
+		var vectorDB adapters.VectorDB
+		var err error
 
-		// docs, err := app.LLMHandler.DocumentLoader(ctx)
-		// if err != nil {
-		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-		// 	return
-		// }
-		// vectorDB, err := qdrant.New(cfg.Spec.VectorDB.Host, cfg.Spec.VectorDB.Port, "", app.Embedder)
-		// if err != nil {
-		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-		// 	return
-		// }
+		if r.Method == "POST" {
+			collectionName, err = util.RequiredParameterAsString(r, "collection-name")
+			if err != nil {
+				resp = fmt.Sprintf("Missing required parameter: collection-name. %v", err)
+				goto docs_result
+			}
 
-		// if len(docs) > 0 {
-		// 	err = vectorDB.AddDocuments(ctx, docs)
-		// 	if err != nil {
-		// 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		// 		return
-		// 	}
-		// }
+			vectorDB, err = util.GetVectorDBForCollection(collectionName, &cfg.Spec.VectorDB, app.Embedder)
+			if err != nil {
+				resp = fmt.Sprintf("unable to get vector db. %v", err)
+				h.Log.Error(resp)
+				goto docs_result
+			}
+			err = embeddingLlmHandler.LoadDocumentsFromHttpRequest(ctx, func(docs []schema.Document, e *colly.HTMLElement) error {
+				err = vectorDB.AddDocuments(ctx, docs)
+				if err != nil {
+					resp = fmt.Sprintf("unable to add documents. %v", err)
+					h.Log.Error(resp)
+					return err
+				}
+				return nil
+			}, collectionName, r)
+			if err != nil {
+				resp = fmt.Sprintf("unable to add documents. %v", err)
+				h.Log.Error(resp)
+				goto docs_result
+			}
 
+			resp = "Documents added successfully"
+		} else if r.Method == "GET" {
+			resp = "Documentation endpoint"
+		} else {
+			resp = "Invalid request method"
+		}
+	docs_result:
 		fmt.Fprint(w, resp)
 	})
 
@@ -180,7 +249,8 @@ func (h *HttpServer) Run() error {
 	return http.ListenAndServe(addr, nil)
 }
 
-// TODO create a generic function to load configs
+// LoadConfigs loads the configuration files and returns the configuration objects with
+// reasonable defaults.
 func (h *HttpServer) loadConfigs() (data.Config, data.KBConfig, error) {
 	var cfg data.Config
 	var kbCfg data.KBConfig
