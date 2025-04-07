@@ -22,10 +22,10 @@ type App struct {
 }
 
 func New(ctx context.Context, cfg data.Config, kbCfg data.KBConfig, skipKbLoad bool, log *logrus.Logger) (*App, error) {
-	embeddingLlmHandler := langchain.New(cfg.Spec.LLM.ChatModel, cfg.Spec.LLM.EmbeddingModel, cfg.Spec.LLM.URL, cfg.Spec.LLM.ScoreThreshold, cfg.Spec.LLM.Temperature, kbCfg, log)
+	embeddingLlmHandler := langchain.New(cfg.Spec.LLM.ChatModel, cfg.Spec.LLM.EmbeddingModel, cfg.Spec.LLM.URL, cfg.Spec.LLM.ScoreThreshold, cfg.Spec.LLM.Temperature, kbCfg, cfg, log)
 	embedder, err := embeddingLlmHandler.NewEmbedder()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create embedding LLM handler: %v", err)
 	}
 
 	kbLoader := util.NewKBLoader(ctx, &kbCfg, &cfg, embeddingLlmHandler, embedder, log)

@@ -1,9 +1,12 @@
 package data
 
 type VectorDBType string
+type LLMProviderType string
 
 const (
-	QdrantVectorDBType VectorDBType = "qdrant"
+	QdrantVectorDBType    VectorDBType    = "qdrant"
+	LLMProviderTypeOllama LLMProviderType = "ollama"
+	LLMProviderTypeOpenAI LLMProviderType = "openai"
 )
 
 type VectorDBQdrant struct {
@@ -27,11 +30,13 @@ type Config struct {
 
 		// LLM configuration
 		LLM struct {
-			ChatModel      string  `yaml:"chatModel"`      // The model used by the language learning system.
-			EmbeddingModel string  `yaml:"embeddingModel"` // The embedding model used by the language learning system.
-			ScoreThreshold float32 `yaml:"scoreThreshold"` // The threshold score for generating responses.
-			Temperature    float64 `yaml:"temperature"`    // The temperature parameter influencing response diversity.
-			URL            string  `yaml:"url"`            // The URL of the model server
+			ChatModel      string          `yaml:"chatModel"`      // The model used by the language learning system.
+			EmbeddingModel string          `yaml:"embeddingModel"` // The embedding model used by the language learning system.
+			ScoreThreshold float32         `yaml:"scoreThreshold"` // The threshold score for generating responses.
+			Temperature    float64         `yaml:"temperature"`    // The temperature parameter influencing response diversity.
+			URL            string          `yaml:"url"`            // The URL of the model server
+			ProviderType   LLMProviderType `yaml:"providerType"`   // The type of language learning system provider.
+
 		} `yaml:"llm"`
 
 		Server struct {

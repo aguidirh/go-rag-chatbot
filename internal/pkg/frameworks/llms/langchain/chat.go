@@ -2,6 +2,7 @@ package langchain
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 
@@ -11,13 +12,22 @@ import (
 )
 
 func (l LanchChain) NewEmbedder() (emb embeddings.Embedder, err error) {
-	e, err := embeddings.NewEmbedder(l.embeddingLlm)
-	if err != nil {
-		log.Fatal(err) //TODO ALEX CHANGE ME
-		return nil, err
-	}
 
-	return e, nil
+	if l.embeddingLlm != nil {
+		emb, err = embeddings.NewEmbedder(l.embeddingLlm)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create embedding model: %v", err)
+		}
+	} else if l.openAIEmbeddingLLM != nil {
+		emb, err = embeddings.NewEmbedder(l.openAIEmbeddingLLM)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create embedding model: %v", err)
+		}
+	}
+	if emb == nil {
+		return nil, errors.New("no known embedding model provided")
+	}
+	return emb, nil
 }
 
 func (l LanchChain) Chat(ctx context.Context, vectorStore vectorstores.VectorStore, query string) (response string, err error) {
@@ -33,16 +43,20 @@ func (l LanchChain) Chat(ctx context.Context, vectorStore vectorstores.VectorSto
 	retriever := vectorstores.ToRetriever(vectorStore, 5, optionsVector...)
 	// search
 	resDocs, err := retriever.GetRelevantDocuments(context.Background(), query)
+	var stuffQAChain chains.StuffDocuments
+	if l.chatLlm != nil {
+		stuffQAChain = chains.LoadStuffQA(l.chatLlm)
+	} else if l.openAIChatLLM != nil {
+		stuffQAChain = chains.LoadStuffQA(l.openAIChatLLM)
+	}
 
-	stuffQAChain := chains.LoadStuffQA(l.chatLlm)
 	answer, err := chains.Call(context.Background(), stuffQAChain, map[string]any{
 		"input_documents": resDocs,
 		"question":        query,
 	}, options...)
 
 	if err != nil {
-		log.Fatalf("Error running chain: %v", err)
-		return "", err
+		return "", fmt.Errorf("Error running chain: %v", err)
 	}
 
 	if answerText, ok := answer["text"]; ok {

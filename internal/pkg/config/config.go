@@ -41,8 +41,19 @@ func (c *Config) EnsureDefaults(cfg data.Config) data.Config {
 	if cfg.Spec.LLM.Temperature == 0.0 {
 		cfg.Spec.LLM.Temperature = 0.8
 	}
+	if len(cfg.Spec.LLM.ProviderType) == 0 {
+		cfg.Spec.LLM.ProviderType = data.LLMProviderTypeOllama
+	}
 	if cfg.Spec.LLM.URL == "" {
-		cfg.Spec.LLM.URL = "http://localhost:11434"
+		switch cfg.Spec.LLM.ProviderType {
+		case data.LLMProviderTypeOllama:
+			cfg.Spec.LLM.URL = "http://localhost:11434"
+		case data.LLMProviderTypeOpenAI:
+			cfg.Spec.LLM.URL = "http://localhost:1234"
+		default:
+			cfg.Spec.LLM.URL = "http://localhost:11434"
+		}
+
 	}
 
 	return cfg

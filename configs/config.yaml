@@ -4,9 +4,10 @@ spec:
   vectorDB:
     vectorSize: 1024
   llm:
-    chatModel: qwen2:7b-instruct-q4_K_S
-    embeddingModel: mxbai-embed-large
+    chatModel: qwen2.5-coder-3b-instruct
+    embeddingModel: text-embedding-mxbai-embed-large-v1
     scoreThreshold: 0.5
     temperature: 0.8
+    providerType: openai
   server:
     port: 8080
