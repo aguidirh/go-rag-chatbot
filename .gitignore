@@ -1,3 +1,6 @@
 qdrant_storage/
 *debug*
 launch.json
+vendor
+bin/go-rag-bot
+cmd/go-rag-bot/.cache

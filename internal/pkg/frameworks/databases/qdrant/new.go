@@ -2,7 +2,6 @@ package qdrant
 
 import (
 	"fmt"
-	"log"
 	"net/url"
 
 	"github.com/aguidirh/go-rag-chatbot/internal/pkg/adapters"
@@ -16,18 +15,20 @@ type QdrantDB struct {
 }
 
 func New(host, port string, collectionName string, emb embeddings.Embedder) (adapters.VectorDB, error) {
-
 	url, err := url.Parse(fmt.Sprintf("http://%s:%s", host, port))
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse URL. %v", err)
 	}
 
-	store := NewQdrantStore(*url, emb, collectionName)
+	store, err := NewQdrantStore(*url, emb, collectionName)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create Qdrant store. %v", err)
+	}
 
-	return &QdrantDB{url: *url, store: store}, nil
+	return &QdrantDB{url: *url, store: *store}, nil
 }
 
-func NewQdrantStore(url url.URL, emb embeddings.Embedder, collectionName string) qdrant.Store {
+func NewQdrantStore(url url.URL, emb embeddings.Embedder, collectionName string) (*qdrant.Store, error) {
 	store, err := qdrant.New(
 		qdrant.WithURL(url),
 		qdrant.WithCollectionName(collectionName),
@@ -35,8 +36,7 @@ func NewQdrantStore(url url.URL, emb embeddings.Embedder, collectionName string)
 	)
 
 	if err != nil {
-		log.Fatal(err) //TODO ALEX CHANGES ME
+		return nil, fmt.Errorf("unable to create Qdrant store. %v", err)
 	}
-
-	return store
+	return &store, nil
 }
