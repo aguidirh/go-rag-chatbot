@@ -119,7 +119,7 @@ The chatbot is exposed as an http server. Run the following command to bring it 
 
 ```
 go mod tidy
-go run cmd/main.go
+go run cmd/go-rag-bot/main.go
 ```
 
 ### Running as a Container
